@@ -1,0 +1,14 @@
+/		1G
+SWAP		1M
+/tmp		5G
+/var		5G
+/usr		5G
+/usr/X11R6	1G
+/usr/local	15G
+/usr/src	5G
+/usr/obj	10G
+/usr/ports	5G
+/usr/ports/pobj	30G
+/usr/xenocara	2G
+/usr/xobj	4G
+/home		10G

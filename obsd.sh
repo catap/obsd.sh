@@ -123,11 +123,13 @@ set_mode() {
 }
 
 ensure_disk() {
+	[ "$dry_run" = yes ] && return
 	[ -f "$disk" ] && return
 	qemu-img create -f qcow2 "$disk" "$disk_size" || exit 1
 }
 
 require_disk() {
+	[ "$dry_run" = yes ] && return
 	[ -f "$disk" ] && return
 	echo "$disk does not exist" >&2
 	exit 1
@@ -189,6 +191,18 @@ fetch_miniroot() {
 	esac
 	miniroot_name=miniroot${miniroot_version}.img
 
+	if [ "$dry_run" = yes ]; then
+		case "$srcdir" in
+		ftp://*|http://*|https://*)
+			miniroot=/tmp/openbsd-vm.XXXXXXXXXX/$miniroot_name
+			;;
+		*)
+			miniroot=$srcdir/$miniroot_name
+			;;
+		esac
+		return
+	fi
+
 	case "$srcdir" in
 	ftp://*|http://*|https://*)
 		tmpdir=$(mktemp -d /tmp/openbsd-vm.XXXXXXXXXX) || exit 1
@@ -216,6 +230,23 @@ setup_tftp() {
 	require_tftp
 
 	set_installurl
+
+	if [ "$dry_run" = yes ]; then
+		tftproot=/tmp/openbsd-vm.XXXXXXXXXX/tftp
+		case "$netboot" in
+		pxe)	bootprog=pxeboot;;
+		efi)	bootprog=$efi_boot;;
+		*)	echo "TFTP netboot is not implemented for $arch" >&2
+			exit 1
+			;;
+		esac
+		bootfile=$bootprog
+		case "$mode" in
+		autoinstall)	bootfile=auto_install;;
+		autoupgrade)	bootfile=auto_upgrade;;
+		esac
+		return
+	fi
 
 	tmpdir=$(mktemp -d /tmp/openbsd-vm.XXXXXXXXXX) || exit 1
 	trap cleanup EXIT HUP INT TERM

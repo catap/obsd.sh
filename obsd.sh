@@ -20,7 +20,7 @@ cpus=8
 
 i386_memory=4G
 i386_cpus=2
-armv7_memory=3G     # 4G makes OpenBSD/armv7 lose devices under QEMU virt
+armv7_memory=3G     # more than 3G makes U-boot broken
 armv7_cpu=1         # OpenBSD/armv7 does not support SMP
 sparc64_memory=4G   # more leads to Unhandled Exception 0x0000000000000030
 sparc64_cpu=1       # more qemu doesn't support SMP in sparc

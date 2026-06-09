@@ -18,6 +18,8 @@ disk_size=${DISK_SIZE:-100G}
 memory=32G
 cpus=8
 
+i386_memory=4G
+i386_cpus=2
 armv7_memory=3G     # 4G makes OpenBSD/armv7 lose devices under QEMU virt
 armv7_cpu=1         # OpenBSD/armv7 does not support SMP
 sparc64_memory=4G   # more leads to Unhandled Exception 0x0000000000000030
@@ -85,8 +87,8 @@ set_arch() {
 	i386)
 		qemu=qemu-system-i386
 		qemu_args="-nographic"
-		qemu_memory=$memory
-		qemu_cpus=$cpus
+		qemu_memory=$i386_memory
+		qemu_cpus=$i386_cpus
 		net_device=virtio-net-pci
 		netboot=pxe
 		;;

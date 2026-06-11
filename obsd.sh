@@ -28,7 +28,7 @@ sparc64_cpu=1       # more qemu doesn't support SMP in sparc
 ssh_port=${SSH_PORT:-22022}
 
 host_addr=10.0.2.1
-http_addr=10.0.2.2
+http_addr=10.0.2.1
 
 default_installurl=https://cdn.openbsd.org/pub/OpenBSD
 

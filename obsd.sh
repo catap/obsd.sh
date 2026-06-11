@@ -117,11 +117,10 @@ set_arch() {
 		;;
 	sparc64)
 		qemu=qemu-system-sparc64
-		qemu_args="-machine sun4u -nographic -prom-env boot-device=disk"
+		qemu_args="-machine sun4u -nographic -prom-env boot-device=disk -bios $workdir/openbios-sparc64-nret-fix.elf"
 		qemu_memory=$sparc64_memory
 		qemu_cpus=$sparc64_cpu
 		net_legacy_model=sunhme
-		# QEMU OpenBIOS cannot netboot from the emulated NIC.
 		installer=miniroot
 		qemu_disk_args=if=ide,index=0
 		qemu_miniroot_disk_args=if=ide,index=1

@@ -2,7 +2,7 @@ OpenBSD VMs
 
 It needs following firmwares:
 
-    pkg_add u-boot-aarch64 u-boot-arm opensbi u-boot-riscv64
+    pkg_add u-boot-aarch64 u-boot-arm opensbi u-boot-riscv64 talos-ii-pnor-bootkernel
 
 Run a VM:
 
@@ -55,7 +55,6 @@ Not supported:
     mips64 (octeon)
     mips64el (loongson)
     powerpc (macppc)
-    powerpc64
 
 alpha is blocked by QEMU's alpha firmware path. The clipper PALcode is
 not a real SRM console: direct bsd.rd loading uses QEMU's kernel entry
@@ -93,10 +92,3 @@ EFI loader, so firmware boot stops at the UEFI shell.
 powerpc means OpenBSD/macppc. It reaches the OpenBSD ramdisk under
 qemu-system-ppc, but hangs after mounting rd0 and printing the clock
 warning.
-
-powerpc64 is blocked by qemu-system-ppc64 limits. The PowerNV path can
-reach OpenBSD's early Hello, World! message, then hangs; that points at
-missing or incomplete platform emulation rather than an OpenBSD install
-procedure issue. See:
-
-    https://lists.gnu.org/archive/html/qemu-ppc/2021-08/msg00435.html

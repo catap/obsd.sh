@@ -36,7 +36,7 @@ usage() {
 	echo "usage: $0 [-n] <arch> [qemu args ...]" >&2
 	echo "       $0 [-n] (-m|-i|-u) (-s|-R version) <arch> [installurl] [qemu args ...]" >&2
 	echo "       $0 [-n] -z <arch> [qemu-img convert args ...]" >&2
-	echo "supported arch: amd64 arm64 armv7 i386 riscv64 sparc64" >&2
+	echo "supported arch: amd64 arm64 armv7 i386 powerpc64 riscv64 sparc64" >&2
 	exit 2
 }
 
@@ -92,6 +92,20 @@ set_arch() {
 		net_device=virtio-net-pci
 		netboot=pxe
 		;;
+	powerpc64)
+		qemu=qemu-system-ppc64
+		qemu_args="-machine powernv9 -cpu power9 -nographic -bios /usr/local/share/qemu/skiboot.lid -kernel /usr/local/share/talos-ii-pnor/pnor.BOOTKERNEL -device ich9-ahci,id=ahci0,bus=pcie.0"
+		qemu_memory=$memory
+		qemu_cpus=$cpus
+		net_device=e1000e,bus=pcie.1
+		block_device=ide-hd,bus=ahci0.0
+		installer=miniroot
+		qemu_disk_args=if=none,id=hd0
+		qemu_miniroot_disk_args=if=none,id=miniroot0
+		qemu_disk_device_args="-device ide-hd,bus=ahci0.1,drive=hd0"
+		qemu_miniroot_device_args="-device ide-hd,bus=ahci0.0,drive=miniroot0"
+		tmp_parent=$workdir
+		;;
 	riscv64)
 		qemu=qemu-system-riscv64
 		qemu_args="-machine virt -nographic -bios /usr/local/share/opensbi/generic/fw_jump.bin -kernel /usr/local/share/u-boot/qemu-riscv64_smode/u-boot.bin"
@@ -103,12 +117,14 @@ set_arch() {
 		;;
 	sparc64)
 		qemu=qemu-system-sparc64
-		qemu_args="-machine sun4u -nographic"
+		qemu_args="-machine sun4u -nographic -prom-env boot-device=disk"
 		qemu_memory=$sparc64_memory
 		qemu_cpus=$sparc64_cpu
 		net_legacy_model=sunhme
 		# QEMU OpenBIOS cannot netboot from the emulated NIC.
 		installer=miniroot
+		qemu_disk_args=if=ide,index=0
+		qemu_miniroot_disk_args=if=ide,index=1
 		miniroot_boot_device=/pci@1fe,0/pci@1,1/ide@3/ide@0/disk@1
 		miniroot_boot_file=bsd
 		;;
@@ -234,7 +250,7 @@ setup_tftp() {
 	set_installurl
 
 	if [ "$dry_run" = yes ]; then
-		tftproot=/tmp/openbsd-vm.XXXXXXXXXX/tftp
+		tftproot=$tmp_parent/openbsd-vm.XXXXXXXXXX/tftp
 		case "$netboot" in
 		pxe)	bootprog=pxeboot;;
 		efi)	bootprog=$efi_boot;;
@@ -250,7 +266,7 @@ setup_tftp() {
 		return
 	fi
 
-	tmpdir=$(mktemp -d /tmp/openbsd-vm.XXXXXXXXXX) || exit 1
+	tmpdir=$(mktemp -d "$tmp_parent/openbsd-vm.XXXXXXXXXX") || exit 1
 	trap cleanup EXIT HUP INT TERM
 
 	tftproot=$tmpdir/tftp
@@ -371,6 +387,10 @@ net_legacy_model=
 netboot=
 efi_boot=
 installer=tftp
+qemu_disk_args=if=none,id=hd0
+qemu_miniroot_disk_args=if=ide,index=1
+qemu_disk_device_args=
+qemu_miniroot_device_args=
 tmpdir=
 tmpdisk=
 tftproot=
@@ -380,6 +400,7 @@ miniroot_boot_device=
 miniroot_boot_file=
 installurl=
 workdir=$(pwd)
+tmp_parent=${TMPDIR:-/tmp}
 vm_domain=$(hostname)
 vm_hostname=obsd-$arch.$vm_domain
 
@@ -444,14 +465,16 @@ qemu_shutdown_args="-action shutdown=poweroff"
 if [ -n "$miniroot" ]; then
 	run_command "$qemu" $qemu_args $qemu_default_args \
 	    $qemu_boot_args $qemu_shutdown_args \
-	    -drive "file=$disk,format=qcow2,if=ide,index=0" \
-	    -drive "file=$miniroot,format=raw,if=ide,index=1" \
+	    -drive "file=$miniroot,format=raw,$qemu_miniroot_disk_args" \
+	    $qemu_miniroot_device_args \
+	    -drive "file=$disk,format=qcow2,$qemu_disk_args" \
+	    $qemu_disk_device_args \
 	    $net_args \
 	    "$@"
 elif [ -n "$block_device" ]; then
 	run_command "$qemu" $qemu_args $qemu_default_args \
 	    $qemu_boot_args $qemu_shutdown_args \
-	    -drive "file=$disk,format=qcow2,if=none,id=hd0" \
+	    -drive "file=$disk,format=qcow2,$qemu_disk_args" \
 	    -device "$block_device,drive=hd0,bootindex=1" \
 	    $net_args \
 	    "$@"

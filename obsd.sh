@@ -18,8 +18,8 @@ disk_size=${DISK_SIZE:-100G}
 memory=32G
 cpus=8
 
-i386_memory=4G
-i386_cpus=2
+i386_memory=4G      # OpenBSD/i386 supports up to 4Gb ram
+i386_cpus=2         # More CPU is supported, but RAM suggest keep it small
 armv7_memory=3G     # more than 3G makes U-boot broken
 armv7_cpu=1         # OpenBSD/armv7 does not support SMP
 sparc64_memory=4G   # more leads to Unhandled Exception 0x0000000000000030

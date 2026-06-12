@@ -122,8 +122,8 @@ set_arch() {
 		qemu_cpus=$sparc64_cpu
 		net_legacy_model=sunhme
 		installer=miniroot
-		qemu_disk_args=if=ide,index=0
-		qemu_miniroot_disk_args=if=ide,index=1
+		qemu_disk_args=if=none,index=0
+		qemu_miniroot_disk_args=if=none,index=1
 		miniroot_boot_device=/pci@1fe,0/pci@1,1/ide@3/ide@0/disk@1
 		miniroot_boot_file=bsd
 		;;

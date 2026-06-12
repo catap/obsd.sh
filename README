@@ -8,19 +8,20 @@ With QEMU 11.0.1 and libslirp 4.9.3, it needs following patches not yet
 in releases:
 
     sparc64:
-      https://marc.info/?l=openbsd-tech&m=178126606643187&w=2
+      https://marc.info/?l=openbsd-tech&m=178126606643187&q=raw
       https://github.com/catap/openbios/commit/9151118aea489f9fffa40c60ee3b1d93383fb96b.patch
       https://github.com/catap/openbios/commit/8d5ed09f0420389a27394b7c1b7d40ae7aab9d32.patch
+      https://github.com/catap/openbios/commit/cd90de7bda9006e2382d10302555a4cf825ea425.patch
 
     powerpc64:
-      https://marc.info/?l=openbsd-tech&m=178101765759037&w=2
-      https://marc.info/?l=qemu-devel&m=178097910779871&w=2
+      https://marc.info/?l=openbsd-tech&m=178101765759037&q=raw
+      https://marc.info/?l=qemu-devel&m=178097910779871&q=raw
 
     OpenBSD/armv7:
-      https://marc.info/?l=openbsd-tech&m=178111370945923&w=2
+      https://marc.info/?l=openbsd-tech&m=178111370945923&q=raw
 
     QEMU/i386:
-      https://marc.info/?l=qemu-devel&m=178096490372293&w=2
+      https://marc.info/?l=qemu-devel&m=178096490372293&q=raw
 
     libslirp:
       https://gitlab.freedesktop.org/slirp/libslirp/-/commit/3e6e68e779c9051590250a87214dabf91e70949a.patch

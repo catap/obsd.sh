@@ -22,8 +22,7 @@ i386_memory=4G      # OpenBSD/i386 supports up to 4Gb ram
 i386_cpus=2         # More CPU is supported, but RAM suggest keep it small
 armv7_memory=3G     # more than 3G makes U-boot broken
 armv7_cpu=1         # OpenBSD/armv7 does not support SMP
-sparc64_memory=4G   # more leads to Unhandled Exception 0x0000000000000030
-sparc64_cpu=1       # more qemu doesn't support SMP in sparc
+sparc64_cpu=1       # qemu doesn't support SMP in sparc64
 
 ssh_port=${SSH_PORT:-22022}
 
@@ -117,8 +116,8 @@ set_arch() {
 		;;
 	sparc64)
 		qemu=qemu-system-sparc64
-		qemu_args="-machine sun4u -nographic -prom-env boot-device=disk -bios $workdir/openbios-sparc64-obsd-8d5ed09f04.elf"
-		qemu_memory=$sparc64_memory
+		qemu_args="-machine sun4u -nographic -prom-env boot-device=disk -bios $workdir/openbios-sparc64-obsd-cd90de7.elf"
+		qemu_memory=$memory
 		qemu_cpus=$sparc64_cpu
 		net_legacy_model=sunhme
 		installer=miniroot

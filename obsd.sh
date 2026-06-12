@@ -22,6 +22,8 @@ i386_memory=4G      # OpenBSD/i386 supports up to 4Gb ram
 i386_cpus=2         # More CPU is supported, but RAM suggest keep it small
 armv7_memory=3G     # more than 3G makes U-boot broken
 armv7_cpu=1         # OpenBSD/armv7 does not support SMP
+hppa_memory=4G      # OpenBSD/hppa is 32bit, so 4G is max
+hppa_cpu=2          # Like i386, more CPU probably useless
 sparc64_cpu=1       # qemu doesn't support SMP in sparc64
 
 ssh_port=${SSH_PORT:-22022}
@@ -35,7 +37,7 @@ usage() {
 	echo "usage: $0 [-n] <arch> [qemu args ...]" >&2
 	echo "       $0 [-n] (-m|-i|-u) (-s|-R version) <arch> [installurl] [qemu args ...]" >&2
 	echo "       $0 [-n] -z <arch> [qemu-img convert args ...]" >&2
-	echo "supported arch: amd64 arm64 armv7 i386 powerpc64 riscv64 sparc64" >&2
+	echo "supported arch: amd64 arm64 armv7 hppa i386 powerpc64 riscv64 sparc64" >&2
 	exit 2
 }
 
@@ -69,7 +71,8 @@ set_arch() {
 		qemu_memory=$memory
 		qemu_cpus=$cpus
 		net_device=virtio-net-device
-		block_device=virtio-blk-pci
+		qemu_disk_args=if=none,id=hd0
+		qemu_disk_device_args="-device virtio-blk-pci,drive=hd0,bootindex=1"
 		netboot=efi
 		efi_boot=BOOTAA64.EFI
 		;;
@@ -79,9 +82,21 @@ set_arch() {
 		qemu_memory=$armv7_memory
 		qemu_cpus=$armv7_cpu
 		net_device=virtio-net-device
-		block_device=virtio-blk-device
+		qemu_disk_args=if=none,id=hd0
+		qemu_disk_device_args="-device virtio-blk-device,drive=hd0,bootindex=1"
 		netboot=efi
 		efi_boot=BOOTARM.EFI
+		;;
+	hppa)
+		qemu=qemu-system-hppa
+		qemu_args="-machine B160L -nographic"
+		qemu_memory=$hppa_memory
+		qemu_cpus=$hppa_cpu
+		net_device=e1000
+		installer=cdrom
+		qemu_disk_args=if=scsi,index=0
+		qemu_cdrom_disk_args=if=scsi,index=2,media=cdrom
+		qemu_disk_boot_args="-boot c"
 		;;
 	i386)
 		qemu=qemu-system-i386
@@ -97,11 +112,11 @@ set_arch() {
 		qemu_memory=$memory
 		qemu_cpus=$cpus
 		net_device=e1000e,bus=pcie.1
-		block_device=ide-hd,bus=ahci0.0
 		installer=miniroot
 		qemu_disk_args=if=none,id=hd0
+		qemu_disk_device_args="-device ide-hd,bus=ahci0.0,drive=hd0,bootindex=1"
+		qemu_installer_disk_device_args="-device ide-hd,bus=ahci0.1,drive=hd0"
 		qemu_miniroot_disk_args=if=none,id=miniroot0
-		qemu_disk_device_args="-device ide-hd,bus=ahci0.1,drive=hd0"
 		qemu_miniroot_device_args="-device ide-hd,bus=ahci0.0,drive=miniroot0"
 		tmp_parent=$workdir
 		;;
@@ -121,7 +136,7 @@ set_arch() {
 		qemu_cpus=$sparc64_cpu
 		net_legacy_model=sunhme
 		installer=miniroot
-		qemu_disk_args=if=none,index=0
+		qemu_installer_disk_args=if=none,index=0
 		qemu_miniroot_disk_args=if=none,index=1
 		miniroot_boot_device=/pci@1fe,0/pci@1,1/ide@3/ide@0/disk@1
 		miniroot_boot_file=bsd
@@ -175,7 +190,6 @@ set_installurl() {
 	if [ "$snapshot" = yes ]; then
 		setdir=snapshots/$arch
 	else
-		[ -n "$release" ] || release=$(uname -r)
 		setdir=$release/$arch
 	fi
 
@@ -200,20 +214,59 @@ require_tftp() {
 	exit 1
 }
 
-fetch_miniroot() {
-	miniroot_version=${release:-$(uname -r)}
-	case "$miniroot_version" in
-	*.*)	miniroot_version=${miniroot_version%.*}${miniroot_version#*.};;
+find_install_file() {
+	prefix=$1
+	suffix=$2
+	pattern=$3
+
+	if [ -n "$release" ]; then
+		install_version=$release
+		case "$install_version" in
+		*.*)	install_version=${install_version%.*}${install_version#*.};;
+		esac
+		install_file=$prefix$install_version$suffix
+		return
+	fi
+
+	case "$srcdir" in
+	ftp://*|http://*|https://*)
+		install_file=$(ftp -Vo - "$srcdir/" |
+		    sed -n "s/.*\($pattern\).*/\1/p" |
+		    sort -u |
+		    sed -n '$p')
+		;;
+	*)
+		set -- "$srcdir"/$prefix*$suffix
+		[ -f "$1" ] || {
+			echo "$prefix*$suffix does not exist in $srcdir" >&2
+			exit 1
+		}
+		for install_path do
+			install_file=${install_path##*/}
+		done
+		;;
 	esac
-	miniroot_name=miniroot${miniroot_version}.img
+
+	[ -n "$install_file" ] || {
+		echo "$prefix*$suffix does not exist in $srcdir" >&2
+		exit 1
+	}
+}
+
+fetch_install_media() {
+	prefix=$1
+	suffix=$2
+	pattern=$3
+
+	find_install_file "$prefix" "$suffix" "$pattern"
 
 	if [ "$dry_run" = yes ]; then
 		case "$srcdir" in
 		ftp://*|http://*|https://*)
-			miniroot=/tmp/openbsd-vm.XXXXXXXXXX/$miniroot_name
+			install_media=/tmp/openbsd-vm.XXXXXXXXXX/$install_file
 			;;
 		*)
-			miniroot=$srcdir/$miniroot_name
+			install_media=$srcdir/$install_file
 			;;
 		esac
 		return
@@ -223,13 +276,13 @@ fetch_miniroot() {
 	ftp://*|http://*|https://*)
 		tmpdir=$(mktemp -d /tmp/openbsd-vm.XXXXXXXXXX) || exit 1
 		trap cleanup EXIT HUP INT TERM
-		miniroot=$tmpdir/$miniroot_name
-		fetch_file "$miniroot_name" "$miniroot"
+		install_media=$tmpdir/$install_file
+		fetch_file "$install_file" "$install_media"
 		;;
 	*)
-		miniroot=$srcdir/$miniroot_name
-		[ -f "$miniroot" ] || {
-			echo "$miniroot does not exist" >&2
+		install_media=$srcdir/$install_file
+		[ -f "$install_media" ] || {
+			echo "$install_media does not exist" >&2
 			exit 1
 		}
 		;;
@@ -239,7 +292,29 @@ fetch_miniroot() {
 setup_miniroot() {
 	set_installurl
 
-	fetch_miniroot
+	fetch_install_media miniroot .img 'miniroot[0-9][0-9]*\.img'
+	miniroot=$install_media
+	qemu_media=$miniroot
+	qemu_media_disk_args=$qemu_miniroot_disk_args
+	qemu_media_device_args=$qemu_miniroot_device_args
+	[ -n "$miniroot_boot_device" ] &&
+	    qemu_media_boot_args="-prom-env boot-device=$miniroot_boot_device $qemu_media_boot_args"
+	[ -n "$miniroot_boot_file" ] &&
+	    qemu_media_boot_args="-prom-env boot-file=$miniroot_boot_file $qemu_media_boot_args"
+	[ -n "$qemu_installer_disk_args" ] &&
+	    qemu_disk_args=$qemu_installer_disk_args
+	[ -n "$qemu_installer_disk_device_args" ] &&
+	    qemu_disk_device_args=$qemu_installer_disk_device_args
+}
+
+setup_cdrom() {
+	set_installurl
+
+	fetch_install_media cd .iso 'cd[0-9][0-9]*\.iso'
+	cdrom=$install_media
+	qemu_media=$cdrom
+	qemu_media_disk_args=$qemu_cdrom_disk_args
+	qemu_media_boot_args="-boot d"
 }
 
 setup_tftp() {
@@ -317,7 +392,7 @@ set_netdev() {
 		net_user="$net_user,guestfwd=tcp:$http_addr:80-cmd:$workdir/dummy-httpd.sh"
 		;;
 	esac
-	if [ -n "$miniroot" ]; then
+	if [ -n "$qemu_media" ]; then
 		net_user="$net_user,guestfwd=tcp:$http_addr:80-cmd:$workdir/dummy-httpd.sh"
 	fi
 
@@ -380,20 +455,28 @@ esac
 
 arch=$1
 shift
-block_device=
 net_legacy_model=
 netboot=
 efi_boot=
 installer=tftp
-qemu_disk_args=if=none,id=hd0
-qemu_miniroot_disk_args=if=ide,index=1
+qemu_disk_args=
+qemu_disk_boot_args=
 qemu_disk_device_args=
+qemu_installer_disk_args=
+qemu_installer_disk_device_args=
+qemu_miniroot_disk_args=if=ide,index=1
+qemu_cdrom_disk_args=
 qemu_miniroot_device_args=
+qemu_media=
+qemu_media_disk_args=
+qemu_media_device_args=
+qemu_media_boot_args=
 tmpdir=
 tmpdisk=
 tftproot=
 bootfile=
 miniroot=
+cdrom=
 miniroot_boot_device=
 miniroot_boot_file=
 installurl=
@@ -427,6 +510,8 @@ manual)
 	ensure_disk
 	if [ "$installer" = miniroot ]; then
 		setup_miniroot
+	elif [ "$installer" = cdrom ]; then
+		setup_cdrom
 	else
 		setup_tftp
 	fi
@@ -445,41 +530,34 @@ esac
 
 set_netdev
 
-qemu_boot_args=
-if [ "$mode" != run ]; then
-	qemu_boot_args="-no-reboot"
-fi
-if [ -n "$miniroot" ]; then
-	[ -n "$miniroot_boot_device" ] &&
-	    qemu_boot_args="-prom-env boot-device=$miniroot_boot_device $qemu_boot_args"
-	[ -n "$miniroot_boot_file" ] &&
-	    qemu_boot_args="-prom-env boot-file=$miniroot_boot_file $qemu_boot_args"
-elif [ -n "$tftproot" ]; then
+qemu_boot_args=$qemu_media_boot_args
+if [ -z "$qemu_boot_args" ] && [ -n "$tftproot" ]; then
 	[ "$netboot" = pxe ] &&
 	    qemu_boot_args="-boot once=n,reboot-timeout=1 $qemu_boot_args"
+elif [ -z "$qemu_boot_args" ]; then
+	qemu_boot_args=$qemu_disk_boot_args
+fi
+if [ "$mode" != run ]; then
+	qemu_boot_args="$qemu_boot_args -no-reboot"
 fi
 qemu_shutdown_args="-action shutdown=poweroff"
+qemu_media_args=
+qemu_target_args=
 
-if [ -n "$miniroot" ]; then
-	run_command "$qemu" $qemu_args $qemu_default_args \
-	    $qemu_boot_args $qemu_shutdown_args \
-	    -drive "file=$miniroot,format=raw,$qemu_miniroot_disk_args" \
-	    $qemu_miniroot_device_args \
-	    -drive "file=$disk,format=qcow2,$qemu_disk_args" \
-	    $qemu_disk_device_args \
-	    $net_args \
-	    "$@"
-elif [ -n "$block_device" ]; then
-	run_command "$qemu" $qemu_args $qemu_default_args \
-	    $qemu_boot_args $qemu_shutdown_args \
-	    -drive "file=$disk,format=qcow2,$qemu_disk_args" \
-	    -device "$block_device,drive=hd0,bootindex=1" \
-	    $net_args \
-	    "$@"
-else
-	run_command "$qemu" $qemu_args $qemu_default_args \
-	    $qemu_boot_args $qemu_shutdown_args \
-	    -hda "$disk" \
-	    $net_args \
-	    "$@"
+if [ -n "$qemu_media" ]; then
+	qemu_media_args="-drive file=$qemu_media,format=raw,$qemu_media_disk_args"
+	qemu_media_args="$qemu_media_args $qemu_media_device_args"
 fi
+if [ -n "$qemu_disk_args" ]; then
+	qemu_target_args="-drive file=$disk,format=qcow2,$qemu_disk_args"
+	qemu_target_args="$qemu_target_args $qemu_disk_device_args"
+else
+	qemu_target_args="-hda $disk"
+fi
+
+run_command "$qemu" $qemu_args $qemu_default_args \
+    $qemu_boot_args $qemu_shutdown_args \
+    $qemu_media_args \
+    $qemu_target_args \
+    $net_args \
+    "$@"

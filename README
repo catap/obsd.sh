@@ -71,7 +71,6 @@ partitions there.
 Not supported:
 
     alpha
-    hppa
     landisk
     m88k (luna88k)
     mips64 (octeon)
@@ -84,14 +83,6 @@ ABI, while OpenBSD/alpha expects the alpha boot loader to pass bootinfo,
 PTBR, and working PROM state. The OpenBSD boot loader is not enough
 there either, because QEMU PALcode does not implement the SRM disk I/O
 callbacks it uses.
-
-hppa is blocked by qemu-system-hppa behaviour before the installer can
-run. C3700 and A400 boot cd79.iso far enough to load bsd.rd, then stop
-after SPID setup. B160L gets farther and prints the OpenBSD copyright,
-then hangs before cpu_startup() output. lif79.img reaches BOOT and can
-open dk0a:/bsd, but loading the ramdisk dies with heap full and an
-allocation size of 0x20202020, which is spaces interpreted as a number,
-not guest RAM exhaustion.
 
 landisk is blocked by QEMU machine support. QEMU provides r2d-plus, not
 the IO-DATA LANDISK platform OpenBSD/landisk expects. Booting

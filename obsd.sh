@@ -117,7 +117,7 @@ set_arch() {
 		;;
 	sparc64)
 		qemu=qemu-system-sparc64
-		qemu_args="-machine sun4u -nographic -prom-env boot-device=disk -bios $workdir/openbios-sparc64-nret-fix.elf"
+		qemu_args="-machine sun4u -nographic -prom-env boot-device=disk -bios $workdir/openbios-sparc64-obsd-8d5ed09f04.elf"
 		qemu_memory=$sparc64_memory
 		qemu_cpus=$sparc64_cpu
 		net_legacy_model=sunhme

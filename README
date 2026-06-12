@@ -4,8 +4,7 @@ It needs following firmwares:
 
     pkg_add u-boot-aarch64 u-boot-arm opensbi u-boot-riscv64 talos-ii-pnor-bootkernel
 
-With QEMU 11.0.1 and libslirp 4.9.3, it needs following patches not yet
-in releases:
+With QEMU 11.0.1 and libslirp 4.9.3, it needs following patches:
 
     sparc64:
       https://marc.info/?l=openbsd-tech&m=178126606643187&q=raw
@@ -51,8 +50,8 @@ as /bsd -s, then run:
 
 With -n, the script prints the command instead of running it.
 
-DISK_SIZE and SSH_PORT override the default VM disk size (100G) and host
-SSH forwarding port (22022).
+DISK_SIZE and SSH_PORT env override the default VM disk size (100G) and
+host SSH forwarding port (22022).
 
 The dummy HTTP server is used only by autoinstall and autoupgrade; it
 serves install.conf and disklabel from the current directory.
@@ -67,24 +66,20 @@ partitions there.
 Not supported:
 
     alpha
-    landisk
+    sh4 (landisk)
     m88k (luna88k)
     mips64 (octeon)
     mips64el (loongson)
     powerpc (macppc)
 
-alpha is blocked by QEMU's alpha firmware path. The clipper PALcode is
-not a real SRM console: direct bsd.rd loading uses QEMU's kernel entry
-ABI, while OpenBSD/alpha expects the alpha boot loader to pass bootinfo,
-PTBR, and working PROM state. The OpenBSD boot loader is not enough
-there either, because QEMU PALcode does not implement the SRM disk I/O
-callbacks it uses.
+alpha is blocked by QEMU firmware support. QEMU only provides the
+clipper machine with emulation PALcode, not an SRM console able to boot
+OpenBSD media. Direct -kernel loading bypasses the OpenBSD boot path and
+does not provide the PROM state OpenBSD expects.
 
-landisk is blocked by QEMU machine support. QEMU provides r2d-plus, not
-the IO-DATA LANDISK platform OpenBSD/landisk expects. Booting
-miniroot79.img as the only disk consumes CPU but prints nothing on the
-serial console; explicit first and second serial wiring does not change
-that.
+sh4 means OpenBSD/landisk. QEMU only provides r2d-plus, not the IO-DATA
+LANDISK platform. Disk boot lacks LANDISK firmware, and direct kernel
+entry resets before the console is initialized.
 
 m88k means OpenBSD/luna88k. QEMU does not provide an m88k system
 emulator.
@@ -92,11 +87,9 @@ emulator.
 mips64 means OpenBSD/octeon. QEMU has an Octeon CPU model, but no Octeon
 machine, so the required platform firmware and devices are missing.
 
-mips64el means OpenBSD/loongson. QEMU has a Fuloong 2E machine, but it
-does not boot through the serial console. loongson3-virt reaches UEFI
-with Loongson Community's non-free bios_loongson3.bin, sees
-miniroot79.img and cd79.iso, but both media contain bsd.rd without an
-EFI loader, so firmware boot stops at the UEFI shell.
+mips64el means OpenBSD/loongson. fuloong2e hangs in PMON before the
+prompt. loongson3-virt boots PMON and loads bsd.rd from miniroot, but
+OpenBSD stops during machine identification.
 
 powerpc means OpenBSD/macppc. It reaches the OpenBSD ramdisk under
 qemu-system-ppc, but hangs after mounting rd0 and printing the clock

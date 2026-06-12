@@ -54,10 +54,6 @@ With -n, the script prints the command instead of running it.
 DISK_SIZE and SSH_PORT override the default VM disk size (100G) and host
 SSH forwarding port (22022).
 
-If autoinstall asks for the response file location, enter:
-
-    http://10.0.2.2/install.conf
-
 The dummy HTTP server is used only by autoinstall and autoupgrade; it
 serves install.conf and disklabel from the current directory.
 

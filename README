@@ -2,7 +2,7 @@ OpenBSD VMs
 
 It needs following firmwares:
 
-    pkg_add u-boot-aarch64 u-boot-arm opensbi u-boot-riscv64 talos-ii-pnor-bootkernel
+    pkg_add u-boot-aarch64 u-boot-arm opensbi u-boot-riscv64 opensbi talos-ii-pnor-bootkernel
 
 With QEMU 11.0.1 and libslirp 4.9.3, it needs following patches:
 

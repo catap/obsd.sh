@@ -15,8 +15,8 @@
 # OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 disk_size=${DISK_SIZE:-100G}
-memory=32G
-cpus=8
+memory=16G
+cpus=4
 
 i386_memory=4G      # OpenBSD/i386 supports up to 4Gb ram
 i386_cpus=2         # More CPU is supported, but RAM suggest keep it small

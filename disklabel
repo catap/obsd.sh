@@ -7,8 +7,8 @@ SWAP		1M
 /usr/local	15G
 /usr/src	5G
 /usr/obj	10G
-/usr/ports	5G
-/usr/ports/pobj	30G
+/usr/ports	15G
+/usr/ports/pobj	50G
 /usr/xenocara	2G
 /usr/xobj	4G
-/home		10G
+/home		9G-*

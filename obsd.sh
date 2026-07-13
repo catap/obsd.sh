@@ -24,6 +24,7 @@ armv7_memory=3G     # more than 3G makes U-boot broken
 armv7_cpu=1         # OpenBSD/armv7 does not support SMP
 hppa_memory=4G      # OpenBSD/hppa is 32bit, so 4G is max
 hppa_cpu=2          # Like i386, more CPU probably useless
+octeon_cpus=4       # OpenBSD/octeon numcores is hardcoded in pflash files
 sparc64_cpu=1       # qemu doesn't support SMP in sparc64
 
 ssh_port=${SSH_PORT:-22022}
@@ -37,7 +38,7 @@ usage() {
 	echo "usage: $0 [-n] <arch> [qemu args ...]" >&2
 	echo "       $0 [-n] (-m|-i|-u) (-s|-R version) <arch> [installurl] [qemu args ...]" >&2
 	echo "       $0 [-n] -z <arch> [qemu-img convert args ...]" >&2
-	echo "supported arch: amd64 arm64 armv7 hppa i386 powerpc64 riscv64 sparc64" >&2
+	echo "supported arch: amd64 arm64 armv7 hppa i386 octeon powerpc64 riscv64 sparc64" >&2
 	exit 2
 }
 
@@ -105,6 +106,23 @@ set_arch() {
 		qemu_cpus=$i386_cpus
 		net_device=virtio-net-pci
 		netboot=pxe
+		;;
+	octeon)
+		qemu=qemu-system-mips64
+		install_arch=octeon
+		qemu_args="-machine octeon3 -accel tcg,thread=multi -nographic -bios /usr/local/share/u-boot/octeon_ebb7304/u-boot.bin"
+		qemu_memory=$memory
+		qemu_cpus=$octeon_cpus
+		net_device=e1000
+		netboot=octeon
+		qemu_disk_args=if=none,id=hd0
+		qemu_disk_device_args="-device usb-storage,drive=hd0"
+		if [ "$mode" = run ]; then
+			qemu_pflash=$workdir/u-boot-octeon3-obsd-boot.pflash
+		else
+			qemu_pflash=$workdir/u-boot-octeon3-obsd-install.pflash
+		fi
+		qemu_pflash_args="-drive file=$qemu_pflash,format=raw,if=pflash"
 		;;
 	powerpc64)
 		qemu=qemu-system-ppc64
@@ -188,9 +206,9 @@ set_installurl() {
 	[ -n "$installurl" ] || installurl=$default_installurl
 
 	if [ "$snapshot" = yes ]; then
-		setdir=snapshots/$arch
+		setdir=snapshots/$install_arch
 	else
-		setdir=$release/$arch
+		setdir=$release/$install_arch
 	fi
 
 	srcdir=${installurl%/}/$setdir
@@ -327,6 +345,7 @@ setup_tftp() {
 		case "$netboot" in
 		pxe)	bootprog=pxeboot;;
 		efi)	bootprog=$efi_boot;;
+		octeon)	bootprog=bsd.rd;;
 		*)	echo "TFTP netboot is not implemented for $arch" >&2
 			exit 1
 			;;
@@ -363,6 +382,9 @@ __EOF
 		cat >"$tftproot/etc/boot.conf" <<__EOF
 boot tftp0a:bsd.rd
 __EOF
+		;;
+	octeon)
+		bootprog=bsd.rd
 		;;
 	*)	echo "TFTP netboot is not implemented for $arch" >&2
 		exit 1
@@ -467,6 +489,8 @@ qemu_installer_disk_device_args=
 qemu_miniroot_disk_args=if=ide,index=1
 qemu_cdrom_disk_args=
 qemu_miniroot_device_args=
+qemu_pflash=
+qemu_pflash_args=
 qemu_media=
 qemu_media_disk_args=
 qemu_media_device_args=
@@ -480,6 +504,7 @@ cdrom=
 miniroot_boot_device=
 miniroot_boot_file=
 installurl=
+install_arch=$arch
 workdir=$(dirname "$(realpath "$0")") || exit 1
 tmp_parent=${TMPDIR:-/tmp}
 vm_domain=$(hostname)
@@ -557,6 +582,7 @@ fi
 
 run_command "$qemu" $qemu_args $qemu_default_args \
     $qemu_boot_args $qemu_shutdown_args \
+    $qemu_pflash_args \
     $qemu_media_args \
     $qemu_target_args \
     $net_args \

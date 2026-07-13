@@ -2,7 +2,7 @@ OpenBSD VMs
 
 It needs following firmwares:
 
-    pkg_add u-boot-aarch64 u-boot-arm opensbi u-boot-riscv64 opensbi talos-ii-pnor-bootkernel
+    pkg_add u-boot-aarch64 u-boot-arm u-boot-octeon u-boot-riscv64 opensbi talos-ii-pnor-bootkernel
 
 With QEMU 11.0.1 and libslirp 4.9.3, it needs following patches:
 
@@ -21,6 +21,9 @@ With QEMU 11.0.1 and libslirp 4.9.3, it needs following patches:
 
     QEMU/i386:
       https://marc.info/?l=qemu-devel&m=178096490372293&q=raw
+
+    QEMU/octeon:
+      https://marc.info/?l=qemu-devel&m=178394159207899&w=2
 
     libslirp:
       https://gitlab.freedesktop.org/slirp/libslirp/-/commit/3e6e68e779c9051590250a87214dabf91e70949a.patch
@@ -59,6 +62,14 @@ serves install.conf and disklabel from the current directory.
 Some arches may not support TFTP install like sparc64, in that case -m
 starts dummy HTTP server as well.
 
+On octeon, -m, -i, and -u use u-boot-octeon3-obsd-install.pflash to
+load the TFTP bootfile. Normal boots use
+u-boot-octeon3-obsd-boot.pflash to load boot from usb 0:1. Both
+pflash images hardcode numcores=4 and pass ${loadaddr} to
+bootoctlinux; the install pflash also passes rootdev=em0 when the DHCP
+bootfile is not bsd.rd, so autoinstall and autoupgrade are seen as
+network boots.
+
 On armv7, the target disk has an MSDOS boot partition visible as i: in
 the disklabel. Autopartitioning has room for at most 14 OpenBSD
 partitions there.
@@ -68,7 +79,6 @@ Not supported:
     alpha
     sh4 (landisk)
     m88k (luna88k)
-    mips64 (octeon)
     mips64el (loongson)
     powerpc (macppc)
 
@@ -83,9 +93,6 @@ entry resets before the console is initialized.
 
 m88k means OpenBSD/luna88k. QEMU does not provide an m88k system
 emulator.
-
-mips64 means OpenBSD/octeon. QEMU has an Octeon CPU model, but no Octeon
-machine, so the required platform firmware and devices are missing.
 
 mips64el means OpenBSD/loongson. fuloong2e hangs in PMON before the
 prompt. loongson3-virt boots PMON and loads bsd.rd from miniroot, but

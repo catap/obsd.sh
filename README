@@ -11,6 +11,7 @@ With QEMU 11.0.1 and libslirp 4.9.3, it needs following patches:
       https://github.com/catap/openbios/commit/9151118aea489f9fffa40c60ee3b1d93383fb96b.patch
       https://github.com/catap/openbios/commit/8d5ed09f0420389a27394b7c1b7d40ae7aab9d32.patch
       https://github.com/catap/openbios/commit/cd90de7bda9006e2382d10302555a4cf825ea425.patch
+      https://github.com/catap/openbios/commit/daa1b2595b2347e8031431dae1aeded976fd7057.patch
 
     powerpc64:
       https://marc.info/?l=openbsd-tech&m=178101765759037&q=raw

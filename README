@@ -16,6 +16,7 @@ included itno OpenBSD Qemu port:
 
     powerpc64:
       https://marc.info/?l=openbsd-tech&m=178101765759037&q=raw
+      https://marc.info/?l=openbsd-tech&m=178394830014223&q=raw
       https://patchew.org/QEMU/20260719145559.94342-1-kirill@korins.ky/
 
     OpenBSD/armv7:

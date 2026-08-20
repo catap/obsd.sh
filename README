@@ -4,7 +4,8 @@ It needs following firmwares:
 
     pkg_add u-boot-aarch64 u-boot-arm u-boot-octeon u-boot-riscv64 opensbi talos-ii-pnor-bootkernel
 
-With QEMU 11.0.1 and libslirp 4.9.3, it needs following patches:
+With QEMU 11.0.1 and libslirp 4.9.3, it needs following patches which is
+included itno OpenBSD Qemu port:
 
     sparc64:
       https://marc.info/?l=openbsd-tech&m=178126606643187&q=raw
@@ -15,16 +16,17 @@ With QEMU 11.0.1 and libslirp 4.9.3, it needs following patches:
 
     powerpc64:
       https://marc.info/?l=openbsd-tech&m=178101765759037&q=raw
-      https://marc.info/?l=qemu-devel&m=178097910779871&q=raw
+      https://patchew.org/QEMU/20260719145559.94342-1-kirill@korins.ky/
 
     OpenBSD/armv7:
       https://marc.info/?l=openbsd-tech&m=178111370945923&q=raw
 
     QEMU/i386:
-      https://marc.info/?l=qemu-devel&m=178096490372293&q=raw
+      https://patchew.org/QEMU/20260609002802.729485-1-richard.henderson@linaro.org/
 
     QEMU/octeon:
-      https://marc.info/?l=qemu-devel&m=178394159207899&w=2
+      https://patchew.org/QEMU/20260719215455.96122-1-kirill@korins.ky/
+      https://patchew.org/QEMU/20260715134447.56007-1-kirill%40korins.ky/
 
     libslirp:
       https://gitlab.freedesktop.org/slirp/libslirp/-/commit/3e6e68e779c9051590250a87214dabf91e70949a.patch

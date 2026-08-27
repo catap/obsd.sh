@@ -29,6 +29,16 @@ included itno OpenBSD Qemu port:
       https://patchew.org/QEMU/20260719215455.96122-1-kirill@korins.ky/
       https://patchew.org/QEMU/20260715134447.56007-1-kirill%40korins.ky/
 
+    OpenBSD/macppc:
+      https://marc.info/?l=openbsd-tech&m=178514780514282&w=2
+      https://patchew.org/QEMU/20260827155310.7223-1-kirill@korins.ky/
+      https://github.com/catap/openbios/commit/e61a69213260e7eae8bef4a8ef0ce5c0b0f6be8a.patch
+      https://github.com/catap/openbios/commit/d14f3c85b567048f0c756b7b030427245416e23d.patch
+      https://github.com/catap/openbios/commit/c05a3d608e452276045e7ec8804a235f8e710e5f.patch
+      https://github.com/catap/openbios/commit/06bd9d43e0755027cad82ba165cb3d2fdd3137a9.patch
+      https://github.com/catap/openbios/commit/d8d459af79ae177dd167be3909ef6f0fab91a563.patch
+      https://github.com/catap/openbios/commit/ba2f9b93d4a157f6d29df606ec4abf6f605e7187.patch
+
     libslirp:
       https://gitlab.freedesktop.org/slirp/libslirp/-/commit/3e6e68e779c9051590250a87214dabf91e70949a.patch
 
@@ -78,12 +88,21 @@ On armv7, the target disk has an MSDOS boot partition visible as i: in
 the disklabel. Autopartitioning has room for at most 14 OpenBSD
 partitions there.
 
+On macppc, OpenBIOS cannot boot bsd.rd directly or through TFTP, so only
+-m and normal run mode are supported. -m boots cd*.iso with the target
+disk at IDE index 0 and the CD at IDE index 2. QEMU's mac99 machine
+supports one CPU and at most 2G of RAM. The required QEMU patches fix
+OpenPIC delivery, decrementer interrupts, and CUDA replies, and expose
+cuda.sr-delay-ns. The launcher sets that delay to zero because OpenBSD
+host timer granularity otherwise breaks long replies. The ADB keyboard,
+CUDA RTC, and e1000 attach; e1000 obtains a DHCP lease. Normal boots load
+hd:,ofwboot /bsd explicitly.
+
 Not supported:
 
     alpha
     sh4 (landisk)
     m88k (luna88k)
-    powerpc (macppc)
 
 alpha is blocked by QEMU firmware support. QEMU only provides the
 clipper machine with emulation PALcode, not an SRM console able to boot
@@ -96,7 +115,3 @@ entry resets before the console is initialized.
 
 m88k means OpenBSD/luna88k. QEMU does not provide an m88k system
 emulator.
-
-powerpc means OpenBSD/macppc. It reaches the OpenBSD ramdisk under
-qemu-system-ppc, but hangs after mounting rd0 and printing the clock
-warning.

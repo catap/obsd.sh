@@ -24,6 +24,8 @@ armv7_memory=3G     # more than 3G makes U-boot broken
 armv7_cpu=1         # OpenBSD/armv7 does not support SMP
 hppa_memory=4G      # OpenBSD/hppa is 32bit, so 4G is max
 hppa_cpu=2          # Like i386, more CPU probably useless
+macppc_memory=2G    # qemu mac99 supports at most 2G of RAM
+macppc_cpus=1       # qemu mac99 doesn't support SMP
 octeon_cpus=4       # OpenBSD/octeon numcores is hardcoded in pflash files
 sparc64_cpu=1       # qemu doesn't support SMP in sparc64
 
@@ -38,7 +40,7 @@ usage() {
 	echo "usage: $0 [-n] <arch> [qemu args ...]" >&2
 	echo "       $0 [-n] (-m|-i|-u) (-s|-R version) <arch> [installurl] [qemu args ...]" >&2
 	echo "       $0 [-n] -z <arch> [qemu-img convert args ...]" >&2
-	echo "supported arch: amd64 arm64 armv7 hppa i386 octeon powerpc64 riscv64 sparc64" >&2
+	echo "supported arch: amd64 arm64 armv7 hppa i386 macppc octeon powerpc64 riscv64 sparc64" >&2
 	exit 2
 }
 
@@ -106,6 +108,20 @@ set_arch() {
 		qemu_cpus=$i386_cpus
 		net_device=virtio-net-pci
 		netboot=pxe
+		;;
+	macppc)
+		qemu=qemu-system-ppc
+		qemu_args="-machine mac99,via=cuda,graphics=off,usb=off -bios $workdir/openbios-ppc-obsd-ba2f9b9.elf -global cuda.sr-delay-ns=0 -cpu 7400 -nographic -prom-env input-device=ttya -prom-env output-device=ttya"
+		qemu_memory=$macppc_memory
+		qemu_cpus=$macppc_cpus
+		net_device=e1000
+		installer=cdrom
+		qemu_disk_args=if=ide,index=0
+		qemu_cdrom_disk_args=if=ide,index=2,media=cdrom,readonly=on
+		qemu_disk_boot_args="-boot c"
+		if [ "$mode" = run ]; then
+			qemu_boot_command='boot hd:,ofwboot /bsd'
+		fi
 		;;
 	octeon)
 		qemu=qemu-system-mips64
@@ -495,6 +511,7 @@ qemu_media=
 qemu_media_disk_args=
 qemu_media_device_args=
 qemu_media_boot_args=
+qemu_boot_command=
 tmpdir=
 tmpdisk=
 tftproot=
@@ -578,6 +595,9 @@ if [ -n "$qemu_disk_args" ]; then
 	qemu_target_args="$qemu_target_args $qemu_disk_device_args"
 else
 	qemu_target_args="-hda $disk"
+fi
+if [ -n "$qemu_boot_command" ]; then
+	set -- -prom-env "boot-command=$qemu_boot_command" "$@"
 fi
 
 run_command "$qemu" $qemu_args $qemu_default_args \

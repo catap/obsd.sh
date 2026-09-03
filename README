@@ -4,8 +4,8 @@ It needs following firmwares:
 
     pkg_add u-boot-aarch64 u-boot-arm u-boot-octeon u-boot-riscv64 opensbi talos-ii-pnor-bootkernel
 
-With QEMU 11.1.0 and libslirp 4.9.3, it needs following patches which is
-included itno OpenBSD QEMU port:
+With QEMU 11.1.1 and libslirp 4.9.3, it needs following patches which is
+included itno OpenBSD QEMU and libslirp ports:
 
     sparc64:
       https://marc.info/?l=openbsd-tech&m=178126606643187&q=raw
@@ -24,11 +24,11 @@ included itno OpenBSD QEMU port:
 
     QEMU/octeon:
       https://patchew.org/QEMU/20260719215455.96122-1-kirill@korins.ky/
-      https://patchew.org/QEMU/20260715134447.56007-1-kirill@korins.ky/
+      https://patchew.org/QEMU/20260903120510.34876-1-kirill@korins.ky/
 
     OpenBSD/macppc:
       https://marc.info/?l=openbsd-tech&m=178514780514282&w=2
-      https://patchew.org/QEMU/20260827155310.7223-1-kirill@korins.ky/
+      https://patchew.org/QEMU/20260903115229.95811-1-kirill@korins.ky/
       https://github.com/catap/openbios/commit/e61a69213260e7eae8bef4a8ef0ce5c0b0f6be8a.patch
       https://github.com/catap/openbios/commit/d14f3c85b567048f0c756b7b030427245416e23d.patch
       https://github.com/catap/openbios/commit/c05a3d608e452276045e7ec8804a235f8e710e5f.patch

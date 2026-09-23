@@ -28,7 +28,7 @@ included itno OpenBSD QEMU and libslirp ports:
 
     OpenBSD/macppc:
       https://marc.info/?l=openbsd-tech&m=178514780514282&w=2
-      https://patchew.org/QEMU/20260903115229.95811-1-kirill@korins.ky/
+      https://patchew.org/QEMU/20260923230452.3765-1-kirill@korins.ky/
       https://github.com/catap/openbios/commit/e61a69213260e7eae8bef4a8ef0ce5c0b0f6be8a.patch
       https://github.com/catap/openbios/commit/d14f3c85b567048f0c756b7b030427245416e23d.patch
       https://github.com/catap/openbios/commit/c05a3d608e452276045e7ec8804a235f8e710e5f.patch

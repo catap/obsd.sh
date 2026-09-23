@@ -111,7 +111,7 @@ set_arch() {
 		;;
 	macppc)
 		qemu=qemu-system-ppc
-		qemu_args="-machine mac99,via=cuda,graphics=off,usb=off -bios $workdir/openbios-ppc-obsd-ba2f9b9.elf -global cuda.sr-delay-ns=0 -cpu 7400 -nographic -prom-env input-device=ttya -prom-env output-device=ttya"
+		qemu_args="-machine mac99,via=cuda,graphics=off,usb=off -bios $workdir/openbios-ppc-obsd-ba2f9b9.elf -global cuda.x-sr-delay-ns=0 -cpu g4 -nographic -prom-env input-device=ttya -prom-env output-device=ttya"
 		qemu_memory=$macppc_memory
 		qemu_cpus=$macppc_cpus
 		net_device=e1000

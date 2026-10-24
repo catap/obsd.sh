@@ -5,7 +5,7 @@ It needs following firmwares:
     pkg_add u-boot-aarch64 u-boot-arm u-boot-octeon u-boot-riscv64 opensbi talos-ii-pnor-bootkernel
 
 With OpenBSD 8.0, QEMU 11.1.1 and libslirp 4.9.4, it needs following
-patches which is included itno OpenBSD QEMU port:
+patches which is included itno OpenBSD QEMU port with exception of hppa patch:
 
     sparc64:
       https://github.com/catap/openbios/commit/9151118aea489f9fffa40c60ee3b1d93383fb96b.patch
@@ -28,6 +28,9 @@ patches which is included itno OpenBSD QEMU port:
       https://github.com/catap/openbios/commit/06bd9d43e0755027cad82ba165cb3d2fdd3137a9.patch
       https://github.com/catap/openbios/commit/d8d459af79ae177dd167be3909ef6f0fab91a563.patch
       https://github.com/catap/openbios/commit/ba2f9b93d4a157f6d29df606ec4abf6f605e7187.patch
+
+    QEMU/hppa
+      https://patchew.org/QEMU/20261024161240.66707-1-kirill@korins.ky/
 
 Run a VM:
 

@@ -29,7 +29,7 @@ macppc_cpus=1       # qemu mac99 doesn't support SMP
 octeon_cpus=4       # OpenBSD/octeon numcores is hardcoded in pflash files
 sparc64_cpu=1       # qemu doesn't support SMP in sparc64
 
-ssh_port=${SSH_PORT:-22022}
+ssh_port=
 
 host_addr=10.0.2.1
 http_addr=10.0.2.1
@@ -37,8 +37,8 @@ http_addr=10.0.2.1
 default_installurl=https://cdn.openbsd.org/pub/OpenBSD
 
 usage() {
-	echo "usage: $0 [-n] <arch> [qemu args ...]" >&2
-	echo "       $0 [-n] (-m|-i|-u) (-s|-R version) <arch> [installurl] [qemu args ...]" >&2
+	echo "usage: $0 [-n] [-p port] <arch> [qemu args ...]" >&2
+	echo "       $0 [-n] [-p port] (-m|-i|-u) (-s|-R version) <arch> [installurl] [qemu args ...]" >&2
 	echo "       $0 [-n] -z <arch> [qemu-img convert args ...]" >&2
 	echo "supported arch: amd64 arm64 armv7 hppa i386 macppc octeon powerpc64 riscv64 sparc64" >&2
 	exit 2
@@ -419,7 +419,11 @@ __EOF
 }
 
 set_netdev() {
-	net_user="user,host=$host_addr,hostname=$vm_hostname,domainname=$vm_domain,hostfwd=::${ssh_port}-:22"
+	net_user="user,host=$host_addr,hostname=$vm_hostname,domainname=$vm_domain"
+
+	if [ -n "$ssh_port" ]; then
+		net_user="$net_user,hostfwd=::${ssh_port}-:22"
+	fi
 
 	if [ -n "$tftproot" ]; then
 		net_user="$net_user,tftp=$tftproot,bootfile=$bootfile"
@@ -466,9 +470,10 @@ dry_run=no
 snapshot=no
 release=
 
-while getopts nzmiuR:s opt; do
+while getopts np:zmiuR:s opt; do
 	case "$opt" in
 	n)	dry_run=yes;;
+	p)	ssh_port=$OPTARG;;
 	z)	set_mode shrink;;
 	m)	set_mode manual;;
 	i)	set_mode autoinstall;;

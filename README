@@ -34,16 +34,16 @@ patches which is included itno OpenBSD QEMU port with exception of hppa patch:
 
 Run a VM:
 
-    ./obsd.sh [-n] <arch> [qemu args ...]
+    ./obsd.sh [-n] [-p port] <arch> [qemu args ...]
 
 Boot miniroot with attached VM disk:
 
-    ./obsd.sh [-n] -m (-s|-R version) <arch> [installurl] [qemu args ...]
+    ./obsd.sh [-n] [-p port] -m (-s|-R version) <arch> [installurl] [qemu args ...]
 
 Autoinstall or autoupgrade over TFTP:
 
-    ./obsd.sh [-n] -i (-s|-R version) <arch> [installurl] [qemu args ...]
-    ./obsd.sh [-n] -u (-s|-R version) <arch> [installurl] [qemu args ...]
+    ./obsd.sh [-n] [-p port] -i (-s|-R version) <arch> [installurl] [qemu args ...]
+    ./obsd.sh [-n] [-p port] -u (-s|-R version) <arch> [installurl] [qemu args ...]
 
 Shrink a qcow2 image:
 
@@ -57,8 +57,10 @@ as /bsd -s, then run:
 
 With -n, the script prints the command instead of running it.
 
-DISK_SIZE and SSH_PORT env override the default VM disk size (100G) and
-host SSH forwarding port (22022).
+Use -p port to forward a host port to the guest's SSH port (22). Without
+-p, no SSH port is bound on the host.
+
+DISK_SIZE env overrides the VM disk size.
 
 The dummy HTTP server is used only by autoinstall and autoupgrade; it
 serves install.conf and disklabel from the current directory.

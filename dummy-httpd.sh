@@ -37,12 +37,33 @@ esac
 path=${path%%\?*}
 path=${path#/}
 
+content_type=text/plain
+
 case "$path" in
 install.conf|disklabel)
 	file=$root/$path
 	;;
-*)	not_found
+upgrade.conf)
+	file=$root/install.conf
 	;;
+pub/OpenBSD/*/*/*)
+	set_file=${path##*/}
+	case "$set_file" in
+	INSTALL.*)
+		printf 'HTTP/1.0 200 OK\r\nContent-Length: 0\r\n\r\n'
+		exit 0
+		;;
+	index.txt|SHA256.sig|BUILDINFO)
+		file=$root/$set_file
+		;;
+	site*.tgz)
+		file=$root/site.tgz
+		content_type=application/gzip
+		;;
+	*) not_found ;;
+	esac
+	;;
+*) not_found ;;
 esac
 
 [ -f "$file" ] || not_found
@@ -51,7 +72,7 @@ set -- $(wc -c < "$file")
 length=$1
 
 printf 'HTTP/1.0 200 OK\r\n'
-printf 'Content-Type: text/plain\r\n'
+printf 'Content-Type: %s\r\n' "$content_type"
 printf 'Content-Length: %s\r\n' "$length"
 printf '\r\n'
 

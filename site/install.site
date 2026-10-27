@@ -1,0 +1,2 @@
+usermod -G staff,wsrc,wobj obsd
+chown obsd:wsrc /usr/src /usr/ports /usr/xenocara

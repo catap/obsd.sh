@@ -62,11 +62,24 @@ Use -p port to forward a host port to the guest's SSH port (22). Without
 
 DISK_SIZE env overrides the VM disk size.
 
-The dummy HTTP server is used only by autoinstall and autoupgrade; it
-serves install.conf and disklabel from the current directory.
+All install modes use the dummy HTTP server. It serves copies of
+install.conf and disklabel from beside obsd.sh, with upgrade.conf using
+the same answers. The handler and generated files share the installation
+temporary directory with the boot files and are removed when QEMU exits.
 
-Some arches may not support TFTP install like sparc64, in that case -m
-starts dummy HTTP server as well.
+When site/ exists, bsdtar builds site.tgz in that temporary directory
+using site.perms. Install bsdtar with:
+
+    pkg_add libarchive
+
+site.perms uses mtree syntax to specify archive paths, ownership, modes,
+and source files relative to site/. For example:
+
+    #mtree
+    /set type=file uid=0 gid=0 mode=0644
+    ./etc type=dir mode=0755
+    ./etc/example.conf mode=0600 contents=etc/example.conf
+    ./install.site mode=0755 contents=install.site
 
 On octeon, -m, -i, and -u use u-boot-octeon3-obsd-install.pflash to
 load the TFTP bootfile. Normal boots use

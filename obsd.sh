@@ -58,6 +58,18 @@ run_command() {
 	fi
 }
 
+setup_tmpdir() {
+	[ -n "$tmpdir" ] && return
+
+	if [ "$dry_run" = yes ]; then
+		tmpdir=$tmp_parent/openbsd-vm.XXXXXXXXXX
+	else
+		tmpdir=$(mktemp -d "$tmp_parent/openbsd-vm.XXXXXXXXXX") || exit 1
+		trap cleanup EXIT HUP INT TERM
+		tmpdir=$(realpath "$tmpdir") || exit 1
+	fi
+}
+
 set_arch() {
 	case "$arch" in
 	amd64)
@@ -285,6 +297,8 @@ find_install_file() {
 		echo "$prefix*$suffix does not exist in $srcdir" >&2
 		exit 1
 	}
+	install_version=${install_file#"$prefix"}
+	install_version=${install_version%"$suffix"}
 }
 
 fetch_install_media() {
@@ -297,7 +311,8 @@ fetch_install_media() {
 	if [ "$dry_run" = yes ]; then
 		case "$srcdir" in
 		ftp://*|http://*|https://*)
-			install_media=/tmp/openbsd-vm.XXXXXXXXXX/$install_file
+			setup_tmpdir
+			install_media=$tmpdir/$install_file
 			;;
 		*)
 			install_media=$srcdir/$install_file
@@ -308,8 +323,7 @@ fetch_install_media() {
 
 	case "$srcdir" in
 	ftp://*|http://*|https://*)
-		tmpdir=$(mktemp -d /tmp/openbsd-vm.XXXXXXXXXX) || exit 1
-		trap cleanup EXIT HUP INT TERM
+		setup_tmpdir
 		install_media=$tmpdir/$install_file
 		fetch_file "$install_file" "$install_media"
 		;;
@@ -355,9 +369,10 @@ setup_tftp() {
 	require_tftp
 
 	set_installurl
+	setup_tmpdir
+	tftproot=$tmpdir/tftp
 
 	if [ "$dry_run" = yes ]; then
-		tftproot=$tmp_parent/openbsd-vm.XXXXXXXXXX/tftp
 		case "$netboot" in
 		pxe)	bootprog=pxeboot;;
 		efi)	bootprog=$efi_boot;;
@@ -374,10 +389,6 @@ setup_tftp() {
 		return
 	fi
 
-	tmpdir=$(mktemp -d "$tmp_parent/openbsd-vm.XXXXXXXXXX") || exit 1
-	trap cleanup EXIT HUP INT TERM
-
-	tftproot=$tmpdir/tftp
 	mkdir -p "$tftproot/etc" || exit 1
 
 	fetch_file bsd.rd "$tftproot/bsd.rd"
@@ -418,6 +429,32 @@ __EOF
 	fi
 }
 
+setup_http() {
+	setup_tmpdir
+	httproot=$tmpdir
+	[ "$dry_run" = yes ] && return
+
+	cp "$workdir/dummy-httpd.sh" "$workdir/install.conf" \
+	    "$workdir/disklabel" "$httproot/" || exit 1
+
+	if [ -d "$workdir/site" ]; then
+		[ -n "$install_version" ] ||
+		    find_install_file base .tgz 'base[0-9][0-9]*\.tgz'
+		bsdtar -czf "$httproot/site.tgz" \
+		    -C "$workdir/site" "@$workdir/site.perms" || exit 1
+		fetch_file SHA256.sig "$httproot/SHA256.sig"
+		if grep -q '^SHA256 (BUILDINFO) = ' "$httproot/SHA256.sig"; then
+			fetch_file BUILDINFO "$httproot/BUILDINFO"
+		fi
+		printf '0 INSTALL.%s\n0 SHA256.sig\n0 site%s.tgz\n' "$install_arch" \
+		    "$install_version" >"$httproot/index.txt" || exit 1
+		cat >>"$httproot/install.conf" <<__EOF || exit 1
+Checksum test for site$install_version.tgz failed. Continue anyway = yes
+Unverified sets: site$install_version.tgz. Continue without verification = yes
+__EOF
+	fi
+}
+
 set_netdev() {
 	net_user="user,host=$host_addr,hostname=$vm_hostname,domainname=$vm_domain"
 
@@ -429,13 +466,8 @@ set_netdev() {
 		net_user="$net_user,tftp=$tftproot,bootfile=$bootfile"
 	fi
 
-	case "$mode" in
-	autoinstall|autoupgrade)
-		net_user="$net_user,guestfwd=tcp:$http_addr:80-cmd:$workdir/dummy-httpd.sh"
-		;;
-	esac
-	if [ -n "$qemu_media" ]; then
-		net_user="$net_user,guestfwd=tcp:$http_addr:80-cmd:$workdir/dummy-httpd.sh"
+	if [ -n "$httproot" ]; then
+		net_user="$net_user,guestfwd=tcp:$http_addr:80-cmd:$httproot/dummy-httpd.sh"
 	fi
 
 	if [ -n "$net_legacy_model" ]; then
@@ -520,12 +552,14 @@ qemu_boot_command=
 tmpdir=
 tmpdisk=
 tftproot=
+httproot=
 bootfile=
 miniroot=
 cdrom=
 miniroot_boot_device=
 miniroot_boot_file=
 installurl=
+install_version=
 install_arch=$arch
 workdir=$(dirname "$(realpath "$0")") || exit 1
 tmp_parent=${TMPDIR:-/tmp}
@@ -562,16 +596,19 @@ manual)
 	else
 		setup_tftp
 	fi
+	setup_http
 	;;
 autoinstall)
 	require_tftp
 	ensure_disk
 	setup_tftp
+	setup_http
 	;;
 autoupgrade)
 	require_tftp
 	require_disk
 	setup_tftp
+	setup_http
 	;;
 esac
 

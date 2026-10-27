@@ -38,7 +38,7 @@ default_installurl=https://cdn.openbsd.org/pub/OpenBSD
 
 usage() {
 	echo "usage: $0 [-n] [-p port] <arch> [qemu args ...]" >&2
-	echo "       $0 [-n] [-p port] (-m|-i|-u) (-s|-R version) <arch> [installurl] [qemu args ...]" >&2
+	echo "       $0 [-n] [-k] [-p port] (-m|-i|-u) (-s|-R version) <arch> [installurl] [qemu args ...]" >&2
 	echo "       $0 [-n] -z <arch> [qemu-img convert args ...]" >&2
 	echo "supported arch: amd64 arm64 armv7 hppa i386 macppc octeon powerpc64 riscv64 sparc64" >&2
 	exit 2
@@ -251,6 +251,18 @@ fetch_file() {
 		cp "$srcdir/$1" "$2" || exit 1
 		;;
 	esac
+	[ "$1" = SHA256.sig ] || verify_file "$@"
+}
+
+verify_file() {
+	[ "$verify_downloads" = no ] && return
+	setup_tmpdir
+	[ -f "$tmpdir/SHA256.sig" ] ||
+	    fetch_file SHA256.sig "$tmpdir/SHA256.sig"
+	(
+		cd "${2%/*}" || exit 1
+		signify -C -t base -x "$tmpdir/SHA256.sig" "$1"
+	) || exit 1
 }
 
 require_tftp() {
@@ -333,6 +345,7 @@ fetch_install_media() {
 			echo "$install_media does not exist" >&2
 			exit 1
 		}
+		verify_file "$install_file" "$install_media"
 		;;
 	esac
 }
@@ -442,7 +455,8 @@ setup_http() {
 		    find_install_file base .tgz 'base[0-9][0-9]*\.tgz'
 		bsdtar -czf "$httproot/site.tgz" \
 		    -C "$workdir/site" "@$workdir/site.perms" || exit 1
-		fetch_file SHA256.sig "$httproot/SHA256.sig"
+		[ -f "$httproot/SHA256.sig" ] ||
+		    fetch_file SHA256.sig "$httproot/SHA256.sig"
 		if grep -q '^SHA256 (BUILDINFO) = ' "$httproot/SHA256.sig"; then
 			fetch_file BUILDINFO "$httproot/BUILDINFO"
 		fi
@@ -499,12 +513,14 @@ set_qemu_defaults() {
 
 mode=run
 dry_run=no
+verify_downloads=yes
 snapshot=no
 release=
 
-while getopts np:zmiuR:s opt; do
+while getopts nkp:zmiuR:s opt; do
 	case "$opt" in
 	n)	dry_run=yes;;
+	k)	verify_downloads=no;;
 	p)	ssh_port=$OPTARG;;
 	z)	set_mode shrink;;
 	m)	set_mode manual;;

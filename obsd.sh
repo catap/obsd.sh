@@ -652,10 +652,11 @@ if [ -n "$qemu_media" ]; then
 	qemu_media_args="$qemu_media_args $qemu_media_device_args"
 fi
 if [ -n "$qemu_disk_args" ]; then
-	qemu_target_args="-drive file=$disk,format=qcow2,$qemu_disk_args"
-	qemu_target_args="$qemu_target_args $qemu_disk_device_args"
+	qemu_target_option=-drive
+	qemu_target_args="file=$disk,format=qcow2,$qemu_disk_args"
 else
-	qemu_target_args="-hda $disk"
+	qemu_target_option=-hda
+	qemu_target_args=$disk
 fi
 if [ -n "$qemu_boot_command" ]; then
 	set -- -prom-env "boot-command=$qemu_boot_command" "$@"
@@ -665,6 +666,7 @@ run_command "$qemu" $qemu_args $qemu_default_args \
     $qemu_boot_args $qemu_shutdown_args \
     $qemu_pflash_args \
     $qemu_media_args \
-    $qemu_target_args \
+    "$qemu_target_option" "$qemu_target_args" \
+    $qemu_disk_device_args \
     $net_args \
     "$@"

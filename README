@@ -34,20 +34,20 @@ patches which is included itno OpenBSD QEMU port with exception of hppa patch:
 
 Run a VM:
 
-    ./obsd.sh [-n] [-f image] [-p port] <arch> [qemu args ...]
+    ./obsd.sh [-n] [-d directory] [-f image] [-p port] <arch> [qemu args ...]
 
 Boot miniroot with attached VM disk:
 
-    ./obsd.sh [-n] [-k] [-f image] -m (-s|-R version) <arch> [installurl] [qemu args ...]
+    ./obsd.sh [-n] [-k] [-d directory] [-f image] -m (-s|-R version) <arch> [installurl] [qemu args ...]
 
 Autoinstall or autoupgrade over TFTP:
 
-    ./obsd.sh [-n] [-k] [-f image] -i (-s|-R version) <arch> [installurl] [qemu args ...]
-    ./obsd.sh [-n] [-k] [-f image] -u (-s|-R version) <arch> [installurl] [qemu args ...]
+    ./obsd.sh [-n] [-k] [-d directory] [-f image] -i (-s|-R version) <arch> [installurl] [qemu args ...]
+    ./obsd.sh [-n] [-k] [-d directory] [-f image] -u (-s|-R version) <arch> [installurl] [qemu args ...]
 
 Shrink a qcow2 image:
 
-    ./obsd.sh [-n] [-f image] -z <arch> [qemu-img convert args ...]
+    ./obsd.sh [-n] [-d directory] [-f image] -z <arch> [qemu-img convert args ...]
 
 Use -c after <arch> to create a compressed qcow2. Zero free space inside
 the guest first if you want the conversion to reclaim by Boot the guest
@@ -69,6 +69,10 @@ do not accept -p.
 
 Use -f image before <arch> to select the qcow2 disk in any mode. The
 default is <arch>.qcow2.
+
+Use -d directory before <arch> to change the working directory before
+running. Relative paths, including -f, are resolved there. Configuration
+and bundled firmware are still loaded from beside obsd.sh.
 
 DISK_SIZE env overrides the VM disk size.
 

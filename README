@@ -1,11 +1,21 @@
 OpenBSD VMs
 
-It needs following firmwares:
+obsd.sh installs, upgrades, and runs OpenBSD VMs under QEMU; guests use
+a serial console and qcow2 disk images.
 
-    pkg_add u-boot-aarch64 u-boot-arm u-boot-octeon u-boot-riscv64 opensbi talos-ii-pnor-bootkernel
+For design rationale and architecture specific details, see:
+https://kirill.korins.ky/articles/openbsd-under-qemu/
 
-With OpenBSD 8.0, QEMU 11.1.1 and libslirp 4.9.4, it needs following
-patches which is included itno OpenBSD QEMU port with exception of hppa patch:
+Requirements
+
+Install the required packages:
+
+    pkg_add qemu libarchive u-boot-aarch64 u-boot-arm u-boot-octeon \
+        u-boot-riscv64 opensbi talos-ii-pnor-bootkernel
+
+The following patches are required for QEMU 11.1.1 and libslirp 4.9.4.
+They are included in the OpenBSD -current QEMU port; OpenBSD 8.0
+includes all except the hppa patch:
 
     sparc64:
       https://github.com/catap/openbios/commit/9151118aea489f9fffa40c60ee3b1d93383fb96b.patch
@@ -18,7 +28,7 @@ patches which is included itno OpenBSD QEMU port with exception of hppa patch:
 
     QEMU/octeon:
       https://patchew.org/QEMU/20260719215455.96122-1-kirill@korins.ky/
-      https://patchew.org/QEMU/20260903120510.34876-1-kirill@korins.ky/
+      https://patchew.org/QEMU/20261029204609.38989-1-kirill@korins.ky/
 
     OpenBSD/macppc:
       https://patchew.org/QEMU/20261001230058.11465-1-kirill@korins.ky/
@@ -29,65 +39,64 @@ patches which is included itno OpenBSD QEMU port with exception of hppa patch:
       https://github.com/catap/openbios/commit/d8d459af79ae177dd167be3909ef6f0fab91a563.patch
       https://github.com/catap/openbios/commit/ba2f9b93d4a157f6d29df606ec4abf6f605e7187.patch
 
-    QEMU/hppa
+    QEMU/hppa:
       https://patchew.org/QEMU/20261024161240.66707-1-kirill@korins.ky/
+
+
+Usage
+
+Supported architectures: amd64, arm64, armv7, hppa, i386, macppc, octeon,
+powerpc64, riscv64, and sparc64.
 
 Run a VM:
 
-    ./obsd.sh [-n] [-d directory] [-f image] [-p port] <arch> [qemu args ...]
+    ./obsd.sh [-n] [-d directory] [-f image] [-p port] <arch> \
+        [qemu args ...]
 
-Boot miniroot with attached VM disk:
+Boot installation media with the target VM disk attached:
 
-    ./obsd.sh [-n] [-k] [-d directory] [-f image] -m (-s|-R version) <arch> [installurl] [qemu args ...]
+    ./obsd.sh [-n] [-k] [-d directory] [-f image] \
+        -m (-s|-R version) <arch> [installurl] [qemu args ...]
 
 Autoinstall or autoupgrade over TFTP:
 
-    ./obsd.sh [-n] [-k] [-d directory] [-f image] -i (-s|-R version) <arch> [installurl] [qemu args ...]
-    ./obsd.sh [-n] [-k] [-d directory] [-f image] -u (-s|-R version) <arch> [installurl] [qemu args ...]
+    ./obsd.sh [-n] [-k] [-d directory] [-f image] \
+        -i (-s|-R version) <arch> [installurl] [qemu args ...]
+    ./obsd.sh [-n] [-k] [-d directory] [-f image] \
+        -u (-s|-R version) <arch> [installurl] [qemu args ...]
 
-Shrink a qcow2 image:
+Use -m for hppa, macppc, powerpc64, and sparc64; -i and -u are available
+for the remaining architectures.
 
-    ./obsd.sh [-n] [-d directory] [-f image] -z <arch> [qemu-img convert args ...]
+Use -s for a snapshot or -R version for a release. The optional
+installurl selects a distribution mirror or local directory.
 
-Use -c after <arch> to create a compressed qcow2. Zero free space inside
-the guest first if you want the conversion to reclaim by Boot the guest
-as /bsd -s, then run:
+Use -n to print commands instead of running them.
 
-    fsck -p && mount -uw / && mount -a -t ffs && mount -t ffs | while read dev on mp rest; do dd if=/dev/zero of=$mp/.zero bs=1m; rm -f $mp/.zero; done; sync; halt
-
-With -n, the script prints the command instead of running it.
-
-Boot files and install media are verified with signify against the
-distribution's SHA256.sig, using installed /etc/signify/*-base.pub keys.
-Local images are checked too. A missing key, missing checksum, or failed
-verification stops the launcher before QEMU starts. Use -k to skip these
-host checks; the guest installer's verification remains enabled.
+Use -k to bypass signature verification on the host.
 
 Use -p port in normal run mode to forward a host port to the guest's SSH
-port (22). Without -p, no SSH port is bound on the host. Install modes
-do not accept -p.
+port; no host SSH port forwarding is bound by default.
 
-Use -f image before <arch> to select the qcow2 disk in any mode. The
-default is <arch>.qcow2.
+Use -f image before <arch> to select the qcow2 disk in any mode;
+the default is <arch>.qcow2 in working directory.
 
-Use -d directory before <arch> to change the working directory before
-running. Relative paths, including -f, are resolved there. Configuration
-and bundled firmware are still loaded from beside obsd.sh.
+Use -d directory before <arch> to change the working directory.
+Relative paths, including -f, are resolved there; configuration and
+bundled firmware are loaded from beside obsd.sh.
 
-DISK_SIZE env overrides the VM disk size.
+DISK_SIZE env sets the size of new VM disks; the default is 128G.
 
-All install modes use the dummy HTTP server. It serves copies of
-install.conf and disklabel from beside obsd.sh, with upgrade.conf using
-the same answers. The handler and generated files share the installation
-temporary directory with the boot files and are removed when QEMU exits.
 
-When site/ exists, bsdtar builds site.tgz in that temporary directory
-using site.perms. Install bsdtar with:
+Installation configuration
 
-    pkg_add libarchive
+All installation modes serve install.conf and disklabel from beside
+obsd.sh through the bundled HTTP server; upgrade.conf uses the same
+answers. Temporary installation files are removed when QEMU exits.
 
-site.perms uses mtree syntax to specify archive paths, ownership, modes,
-and source files relative to site/. For example:
+When site/ exists beside obsd.sh, bsdtar builds site.tgz using
+site.perms, which specifies archive paths, ownership, modes, and source
+files relative to site/ in mtree syntax. For example:
 
     #mtree
     /set type=file uid=0 gid=0 mode=0644
@@ -95,42 +104,31 @@ and source files relative to site/. For example:
     ./etc/example.conf mode=0600 contents=etc/example.conf
     ./install.site mode=0755 contents=install.site
 
-On octeon, -m, -i, and -u use u-boot-octeon3-obsd-install.pflash to
-load the TFTP bootfile. Normal boots use
-u-boot-octeon3-obsd-boot.pflash to load boot from usb 0:1. Both
-pflash images hardcode numcores=4 and pass ${loadaddr} to
-bootoctlinux; the install pflash also passes rootdev=em0 when the DHCP
-bootfile is not bsd.rd, so autoinstall and autoupgrade are seen as
-network boots.
 
-On armv7, the target disk has an MSDOS boot partition visible as i: in
-the disklabel. Autopartitioning has room for at most 14 OpenBSD
-partitions there.
+Architecture limits
 
-On macppc, OpenBIOS cannot boot bsd.rd directly or through TFTP, so only
--m and normal run mode are supported. -m boots cd*.iso with the target
-disk at IDE index 0 and the CD at IDE index 2. QEMU's mac99 machine
-supports one CPU and at most 2G of RAM. The required QEMU patches fix
-OpenPIC delivery, decrementer interrupts, and CUDA replies, and expose
-cuda.sr-delay-ns. The launcher sets that delay to zero because OpenBSD
-host timer granularity otherwise breaks long replies. The ADB keyboard,
-CUDA RTC, and e1000 attach; e1000 obtains a DHCP lease. Normal boots load
-hd:,ofwboot /bsd explicitly.
+On armv7, the MSDOS boot partition appears as i: in the disklabel;
+autopartitioning has room for at most 14 OpenBSD partitions.
 
-Not supported:
+On macppc, -m boots cd*.iso; use one CPU and at most 2G of RAM.
 
-    alpha
-    sh4 (landisk)
-    m88k (luna88k)
+On octeon, use four CPUs.
 
-alpha is blocked by QEMU firmware support. QEMU only provides the
-clipper machine with emulation PALcode, not an SRM console able to boot
-OpenBSD media. Direct -kernel loading bypasses the OpenBSD boot path and
-does not provide the PROM state OpenBSD expects.
 
-sh4 means OpenBSD/landisk. QEMU only provides r2d-plus, not the IO-DATA
-LANDISK platform. Disk boot lacks LANDISK firmware, and direct kernel
-entry resets before the console is initialized.
+Image maintenance
 
-m88k means OpenBSD/luna88k. QEMU does not provide an m88k system
-emulator.
+Shrink a qcow2 image:
+
+    ./obsd.sh [-n] [-d directory] [-f image] -z <arch> \
+        [qemu-img convert args ...]
+
+Add -c after <arch> to create a compressed qcow2 image. To reclaim
+unused space, first boot the guest with /bsd -s and zero free space:
+
+    fsck -p && mount -uw / && mount -a -t ffs &&
+        mount -t ffs | while read dev on mp rest; do
+            dd if=/dev/zero of=$mp/.zero bs=1m
+            rm -f $mp/.zero
+        done
+    sync
+    halt

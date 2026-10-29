@@ -38,7 +38,7 @@ default_installurl=https://cdn.openbsd.org/pub/OpenBSD
 
 usage() {
 	echo "usage: $0 [-n] [-p port] <arch> [qemu args ...]" >&2
-	echo "       $0 [-n] [-k] [-p port] (-m|-i|-u) (-s|-R version) <arch> [installurl] [qemu args ...]" >&2
+	echo "       $0 [-n] [-k] (-m|-i|-u) (-s|-R version) <arch> [installurl] [qemu args ...]" >&2
 	echo "       $0 [-n] -z <arch> [qemu-img convert args ...]" >&2
 	echo "supported arch: amd64 arm64 armv7 hppa i386 macppc octeon powerpc64 riscv64 sparc64" >&2
 	exit 2
@@ -540,6 +540,7 @@ run|shrink)
 	;;
 *)
 	[ "$snapshot" = yes ] || [ -n "$release" ] || usage
+	[ -z "$ssh_port" ] || usage
 	;;
 esac
 [ $# -ge 1 ] || usage

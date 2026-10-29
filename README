@@ -38,12 +38,12 @@ Run a VM:
 
 Boot miniroot with attached VM disk:
 
-    ./obsd.sh [-n] [-k] [-p port] -m (-s|-R version) <arch> [installurl] [qemu args ...]
+    ./obsd.sh [-n] [-k] -m (-s|-R version) <arch> [installurl] [qemu args ...]
 
 Autoinstall or autoupgrade over TFTP:
 
-    ./obsd.sh [-n] [-k] [-p port] -i (-s|-R version) <arch> [installurl] [qemu args ...]
-    ./obsd.sh [-n] [-k] [-p port] -u (-s|-R version) <arch> [installurl] [qemu args ...]
+    ./obsd.sh [-n] [-k] -i (-s|-R version) <arch> [installurl] [qemu args ...]
+    ./obsd.sh [-n] [-k] -u (-s|-R version) <arch> [installurl] [qemu args ...]
 
 Shrink a qcow2 image:
 
@@ -63,8 +63,9 @@ Local images are checked too. A missing key, missing checksum, or failed
 verification stops the launcher before QEMU starts. Use -k to skip these
 host checks; the guest installer's verification remains enabled.
 
-Use -p port to forward a host port to the guest's SSH port (22). Without
--p, no SSH port is bound on the host.
+Use -p port in normal run mode to forward a host port to the guest's SSH
+port (22). Without -p, no SSH port is bound on the host. Install modes
+do not accept -p.
 
 DISK_SIZE env overrides the VM disk size.
 

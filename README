@@ -34,20 +34,20 @@ patches which is included itno OpenBSD QEMU port with exception of hppa patch:
 
 Run a VM:
 
-    ./obsd.sh [-n] [-p port] <arch> [qemu args ...]
+    ./obsd.sh [-n] [-f image] [-p port] <arch> [qemu args ...]
 
 Boot miniroot with attached VM disk:
 
-    ./obsd.sh [-n] [-k] -m (-s|-R version) <arch> [installurl] [qemu args ...]
+    ./obsd.sh [-n] [-k] [-f image] -m (-s|-R version) <arch> [installurl] [qemu args ...]
 
 Autoinstall or autoupgrade over TFTP:
 
-    ./obsd.sh [-n] [-k] -i (-s|-R version) <arch> [installurl] [qemu args ...]
-    ./obsd.sh [-n] [-k] -u (-s|-R version) <arch> [installurl] [qemu args ...]
+    ./obsd.sh [-n] [-k] [-f image] -i (-s|-R version) <arch> [installurl] [qemu args ...]
+    ./obsd.sh [-n] [-k] [-f image] -u (-s|-R version) <arch> [installurl] [qemu args ...]
 
 Shrink a qcow2 image:
 
-    ./obsd.sh [-n] -z <arch> [qemu-img convert args ...]
+    ./obsd.sh [-n] [-f image] -z <arch> [qemu-img convert args ...]
 
 Use -c after <arch> to create a compressed qcow2. Zero free space inside
 the guest first if you want the conversion to reclaim by Boot the guest
@@ -66,6 +66,9 @@ host checks; the guest installer's verification remains enabled.
 Use -p port in normal run mode to forward a host port to the guest's SSH
 port (22). Without -p, no SSH port is bound on the host. Install modes
 do not accept -p.
+
+Use -f image before <arch> to select the qcow2 disk in any mode. The
+default is <arch>.qcow2.
 
 DISK_SIZE env overrides the VM disk size.
 

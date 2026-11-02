@@ -37,8 +37,8 @@ http_addr=10.0.2.1
 default_installurl=https://cdn.openbsd.org/pub/OpenBSD
 
 usage() {
-	echo "usage: $0 [-n] [-d directory] [-f image] [-p port] <arch> [qemu args ...]" >&2
-	echo "       $0 [-n] [-k] [-d directory] [-f image] (-m|-i|-u) (-s|-R version) <arch> [installurl] [qemu args ...]" >&2
+	echo "usage: $0 [-n] [-d directory] [-f image] [-H hostname] [-p port] <arch> [qemu args ...]" >&2
+	echo "       $0 [-n] [-k] [-d directory] [-f image] [-H hostname] (-m|-i|-u) (-s|-R version) <arch> [installurl] [qemu args ...]" >&2
 	echo "       $0 [-n] [-d directory] [-f image] -z <arch> [qemu-img convert args ...]" >&2
 	echo "supported arch: amd64 arm64 armv7 hppa i386 macppc octeon powerpc64 riscv64 sparc64" >&2
 	exit 2
@@ -515,12 +515,18 @@ snapshot=no
 release=
 run_dir=
 disk=
+vm_hostname=
 
-while getopts nd:f:kp:zmiuR:s opt; do
+while getopts nd:f:H:kp:zmiuR:s opt; do
 	case "$opt" in
 	n)	dry_run=yes;;
 	d)	run_dir=$OPTARG;;
 	f)	disk=$OPTARG;;
+	H)	vm_hostname=$OPTARG
+		case "$vm_hostname" in
+		''|.*|*.|*..*|*[!a-zA-Z0-9.-]*) usage;;
+		esac
+		;;
 	k)	verify_downloads=no;;
 	p)	ssh_port=$OPTARG;;
 	z)	set_mode shrink;;
@@ -584,8 +590,12 @@ if [ -n "$run_dir" ]; then
 	cd "$run_dir" || exit 1
 fi
 tmp_parent=${TMPDIR:-/tmp}
-vm_domain=$(hostname)
-vm_hostname=obsd-$arch.$vm_domain
+vm_hostname=${vm_hostname:-obsd-$arch}
+case "$vm_hostname" in
+*.*)	vm_domain=${vm_hostname#*.};;
+*)	vm_domain=$(hostname)
+	vm_hostname=$vm_hostname.$vm_domain;;
+esac
 
 case "$mode" in
 manual|autoinstall|autoupgrade)

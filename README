@@ -50,19 +50,19 @@ powerpc64, riscv64, and sparc64.
 
 Run a VM:
 
-    ./obsd.sh [-n] [-d directory] [-f image] [-p port] <arch> \
-        [qemu args ...]
+    ./obsd.sh [-n] [-d directory] [-f image] [-H hostname] [-p port] \
+        <arch> [qemu args ...]
 
 Boot installation media with the target VM disk attached:
 
-    ./obsd.sh [-n] [-k] [-d directory] [-f image] \
+    ./obsd.sh [-n] [-k] [-d directory] [-f image] [-H hostname] \
         -m (-s|-R version) <arch> [installurl] [qemu args ...]
 
 Autoinstall or autoupgrade over TFTP:
 
-    ./obsd.sh [-n] [-k] [-d directory] [-f image] \
+    ./obsd.sh [-n] [-k] [-d directory] [-f image] [-H hostname] \
         -i (-s|-R version) <arch> [installurl] [qemu args ...]
-    ./obsd.sh [-n] [-k] [-d directory] [-f image] \
+    ./obsd.sh [-n] [-k] [-d directory] [-f image] [-H hostname] \
         -u (-s|-R version) <arch> [installurl] [qemu args ...]
 
 Use -m for hppa, macppc, powerpc64, and sparc64; -i and -u are available
@@ -74,6 +74,10 @@ installurl selects a distribution mirror or local directory.
 Use -n to print commands instead of running them.
 
 Use -k to bypass signature verification on the host.
+
+Use -H hostname or -H hostname.domain to set the guest hostname. A short
+name uses the host system's hostname as its domain; a qualified name uses
+its own domain suffix. The default is obsd-<arch>.<host hostname>.
 
 Use -p port in normal run mode to forward a host port to the guest's SSH
 port; no host SSH port forwarding is bound by default.

@@ -27,8 +27,8 @@ includes all except the hppa patch:
       https://patchew.org/QEMU/20260719145559.94342-1-kirill@korins.ky/
 
     QEMU/octeon:
-      https://patchew.org/QEMU/20260719215455.96122-1-kirill@korins.ky/
-      https://patchew.org/QEMU/20261029204609.38989-1-kirill@korins.ky/
+      https://patchew.org/QEMU/20261101142723.41346-1-kirill@korins.ky/
+      https://patchew.org/QEMU/20261102151022.64359-1-kirill@korins.ky/
 
     OpenBSD/macppc:
       https://patchew.org/QEMU/20261001230058.11465-1-kirill@korins.ky/

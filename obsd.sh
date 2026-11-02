@@ -59,8 +59,6 @@ run_command() {
 }
 
 setup_tmpdir() {
-	[ -n "$tmpdir" ] && return
-
 	if [ "$dry_run" = yes ]; then
 		tmpdir=$tmp_parent/openbsd-vm.XXXXXXXXXX
 	else
@@ -164,7 +162,6 @@ set_arch() {
 		qemu_installer_disk_device_args="-device ide-hd,bus=ahci0.1,drive=hd0"
 		qemu_miniroot_disk_args=if=none,id=miniroot0
 		qemu_miniroot_device_args="-device ide-hd,bus=ahci0.0,drive=miniroot0"
-		tmp_parent=$workdir
 		;;
 	riscv64)
 		qemu=qemu-system-riscv64

@@ -59,6 +59,8 @@ run_command() {
 }
 
 setup_tmpdir() {
+	[ -n "$tmpdir" ] && return
+
 	if [ "$dry_run" = yes ]; then
 		tmpdir=$tmp_parent/openbsd-vm.XXXXXXXXXX
 	else

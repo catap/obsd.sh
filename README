@@ -75,9 +75,8 @@ Use -n to print commands instead of running them.
 
 Use -k to bypass signature verification on the host.
 
-Use -H hostname or -H hostname.domain to set the guest hostname. A short
-name uses the host system's hostname as its domain; a qualified name uses
-its own domain suffix. The default is obsd-<arch>.<host hostname>.
+Use -H hostname[.domain] to override obsd-<arch>.<host hostname>.
+A short name uses the host's hostname as its domain.
 
 Use -p port in normal run mode to forward a host port to the guest's SSH
 port; no host SSH port forwarding is bound by default.
@@ -85,28 +84,39 @@ port; no host SSH port forwarding is bound by default.
 Use -f image before <arch> to select the qcow2 disk in any mode;
 the default is <arch>.qcow2 in working directory.
 
-Use -d directory before <arch> to change the working directory.
-Relative paths, including -f, are resolved there; configuration and
-bundled firmware are loaded from beside obsd.sh.
+Use -d directory to change the working directory; relative paths,
+including -f and a local installurl, are resolved there.
 
 DISK_SIZE env sets the size of new VM disks; the default is 128G.
 
 
 Installation configuration
 
-All installation modes serve install.conf and disklabel from beside
-obsd.sh through the bundled HTTP server; upgrade.conf uses the same
-answers. Temporary installation files are removed when QEMU exits.
+Installation inputs are install.conf, disklabel, site/, site.perms,
+and the Octeon installation pflash. If any exist in the working
+directory, use it for the whole set; otherwise use
+/usr/local/share/examples/obsd.sh. Files are never mixed between them.
 
-When site/ exists beside obsd.sh, bsdtar builds site.tgz using
-site.perms, which specifies archive paths, ownership, modes, and source
-files relative to site/ in mtree syntax. For example:
+-i requires install.conf; -u requires it and an existing disk.
+-m requires install.conf or an existing disk. -i and -m create
+missing disks; run and -z require an existing disk.
+
+upgrade.conf uses install.conf. Provide disklabel when the answers
+reference it.
+
+Optional site/ and site.perms must be provided together. bsdtar builds
+site.tgz from the mtree manifest, with contents= paths relative to
+site/. For example:
 
     #mtree
     /set type=file uid=0 gid=0 mode=0644
     ./etc type=dir mode=0755
     ./etc/example.conf mode=0600 contents=etc/example.conf
     ./install.site mode=0755 contents=install.site
+
+The HTTP helper and OpenBIOS files come from beside obsd.sh, otherwise
+/usr/local/share/obsd.sh. Temporary installation files are removed
+when QEMU exits.
 
 
 Architecture limits
@@ -116,7 +126,14 @@ autopartitioning has room for at most 14 OpenBSD partitions.
 
 On macppc, -m boots cd*.iso; use one CPU and at most 2G of RAM.
 
-On octeon, use four CPUs.
+On octeon, normal run uses u-boot-octeon3-obsd-boot.pflash from the
+working directory, then examples. Installation uses
+u-boot-octeon3-obsd-install.pflash from the selected project directory.
+Example pflash is read only; local pflash is writable.
+
+Both environments use four CPUs. To change this, copy the relevant
+pflash locally, edit and save bootcmd's numcores arguments in U-Boot,
+and pass matching -smp arguments.
 
 
 Image maintenance

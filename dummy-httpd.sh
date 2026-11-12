@@ -24,8 +24,16 @@ bad_request() {
 	exit 0
 }
 
-root=${0%/*}
-[ "$root" = "$0" ] && root=.
+site_answers() {
+	printf '\n%s\n%s\n' \
+	    "Checksum test for site$site_version.tgz failed. Continue anyway = yes" \
+	    "Unverified sets: site$site_version.tgz. Continue without verification = yes"
+}
+
+[ $# -ge 2 ] && [ $# -le 3 ] || exit 1
+project_dir=$1
+httproot=$2
+site_version=$3
 
 IFS=' ' read -r method path version || bad_request
 
@@ -38,13 +46,15 @@ path=${path%%\?*}
 path=${path#/}
 
 content_type=text/plain
+append_site_answers=no
 
 case "$path" in
-install.conf|disklabel)
-	file=$root/$path
+install.conf|upgrade.conf)
+	file=$project_dir/install.conf
+	[ -z "$site_version" ] || append_site_answers=yes
 	;;
-upgrade.conf)
-	file=$root/install.conf
+disklabel)
+	file=$project_dir/disklabel
 	;;
 pub/OpenBSD/*/*/*)
 	set_file=${path##*/}
@@ -54,10 +64,10 @@ pub/OpenBSD/*/*/*)
 		exit 0
 		;;
 	index.txt|SHA256.sig|BUILDINFO)
-		file=$root/$set_file
+		file=$httproot/$set_file
 		;;
 	site*.tgz)
-		file=$root/site.tgz
+		file=$httproot/site.tgz
 		content_type=application/gzip
 		;;
 	*) not_found ;;
@@ -70,10 +80,16 @@ esac
 
 set -- $(wc -c < "$file")
 length=$1
+if [ "$append_site_answers" = yes ]; then
+	set -- $(site_answers | wc -c)
+	length=$((length + $1))
+fi
 
 printf 'HTTP/1.0 200 OK\r\n'
 printf 'Content-Type: %s\r\n' "$content_type"
 printf 'Content-Length: %s\r\n' "$length"
 printf '\r\n'
 
-[ "$method" = HEAD ] || cat "$file"
+[ "$method" = HEAD ] && exit 0
+cat "$file" || exit 1
+[ "$append_site_answers" = no ] || site_answers

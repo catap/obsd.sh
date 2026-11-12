@@ -35,6 +35,8 @@ host_addr=10.0.2.1
 http_addr=10.0.2.1
 
 default_installurl=https://cdn.openbsd.org/pub/OpenBSD
+examples_dir=/usr/local/share/examples/obsd.sh
+assets_dir=/usr/local/share/obsd.sh
 
 usage() {
 	echo "usage: $0 [-n] [-d directory] [-f image] [-H hostname] [-p port] <arch> [qemu args ...]" >&2
@@ -56,6 +58,88 @@ run_command() {
 	else
 		"$@"
 	fi
+}
+
+require_file() {
+	[ "$dry_run" = yes ] && return
+	[ -f "$1" ] && [ -r "$1" ] && return
+
+	echo "$1 is not a readable file" >&2
+	exit 1
+}
+
+resolve_asset() {
+	asset_path=$script_dir/$1
+	if [ ! -e "$asset_path" ] && [ ! -L "$asset_path" ]; then
+		asset_path=$assets_dir/$1
+	fi
+	require_file "$asset_path"
+}
+
+set_project_dir() {
+	project_dir=$examples_dir
+	case "$mode" in
+	run)	set -- "$qemu_pflash";;
+	*)	set -- install.conf disklabel site site.perms "$qemu_pflash";;
+	esac
+
+	for project_file do
+		[ -n "$project_file" ] || continue
+		if [ -e "$run_dir/$project_file" ] ||
+		    [ -L "$run_dir/$project_file" ]; then
+			project_dir=$run_dir
+			return
+		fi
+	done
+}
+
+require_project() {
+	[ "$dry_run" = yes ] && return
+
+	for project_file in install.conf disklabel; do
+		if [ -e "$project_dir/$project_file" ] ||
+		    [ -L "$project_dir/$project_file" ]; then
+			require_file "$project_dir/$project_file"
+		fi
+	done
+
+	if [ -e "$project_dir/site" ] || [ -L "$project_dir/site" ] ||
+	    [ -e "$project_dir/site.perms" ] ||
+	    [ -L "$project_dir/site.perms" ]; then
+		if [ ! -d "$project_dir/site" ] ||
+		    [ ! -r "$project_dir/site" ] ||
+		    [ ! -x "$project_dir/site" ]; then
+			echo "$project_dir/site is not a readable directory" >&2
+			exit 1
+		fi
+		require_file "$project_dir/site.perms"
+	fi
+}
+
+set_assets() {
+	if [ -n "$qemu_bios" ]; then
+		resolve_asset "$qemu_bios"
+		qemu_bios=$asset_path
+	fi
+
+	if [ -n "$qemu_pflash" ]; then
+		qemu_pflash=$project_dir/$qemu_pflash
+		require_file "$qemu_pflash"
+		qemu_pflash_readonly=off
+		[ "$project_dir" != "$examples_dir" ] ||
+		    qemu_pflash_readonly=on
+	fi
+
+	case "$mode" in
+	manual|autoinstall|autoupgrade)
+		resolve_asset dummy-httpd.sh
+		httpd=$asset_path
+		if [ "$dry_run" != yes ] && [ ! -x "$httpd" ]; then
+			echo "$httpd is not executable" >&2
+			exit 1
+		fi
+		;;
+	esac
 }
 
 setup_tmpdir() {
@@ -123,7 +207,8 @@ set_arch() {
 		;;
 	macppc)
 		qemu=qemu-system-ppc
-		qemu_args="-machine mac99,via=cuda,graphics=off,usb=off -bios $workdir/openbios-ppc-obsd-ba2f9b9.elf -global cuda.x-sr-delay-ns=0 -cpu g4 -nographic -prom-env input-device=ttya -prom-env output-device=ttya"
+		qemu_args="-machine mac99,via=cuda,graphics=off,usb=off -global cuda.x-sr-delay-ns=0 -cpu g4 -nographic -prom-env input-device=ttya -prom-env output-device=ttya"
+		qemu_bios=openbios-ppc-obsd-ba2f9b9.elf
 		qemu_memory=$macppc_memory
 		qemu_cpus=$macppc_cpus
 		net_device=e1000
@@ -146,11 +231,10 @@ set_arch() {
 		qemu_disk_args=if=none,id=hd0
 		qemu_disk_device_args="-device usb-storage,drive=hd0"
 		if [ "$mode" = run ]; then
-			qemu_pflash=$workdir/u-boot-octeon3-obsd-boot.pflash
+			qemu_pflash=u-boot-octeon3-obsd-boot.pflash
 		else
-			qemu_pflash=$workdir/u-boot-octeon3-obsd-install.pflash
+			qemu_pflash=u-boot-octeon3-obsd-install.pflash
 		fi
-		qemu_pflash_args="-drive file=$qemu_pflash,format=raw,if=pflash"
 		;;
 	powerpc64)
 		qemu=qemu-system-ppc64
@@ -176,7 +260,8 @@ set_arch() {
 		;;
 	sparc64)
 		qemu=qemu-system-sparc64
-		qemu_args="-machine sun4u -nographic -prom-env boot-device=disk -bios $workdir/openbios-sparc64-obsd-daa1b25.elf"
+		qemu_args="-machine sun4u -nographic -prom-env boot-device=disk"
+		qemu_bios=openbios-sparc64-obsd-daa1b25.elf
 		qemu_memory=$memory
 		qemu_cpus=$sparc64_cpu
 		net_legacy_model=sunhme
@@ -247,7 +332,8 @@ fetch_file() {
 		ftp -o "$2" "$srcdir/$1" || exit 1
 		;;
 	*)
-		cp "$srcdir/$1" "$2" || exit 1
+		fetch_source=$(realpath "$srcdir/$1") || exit 1
+		ln -s "$fetch_source" "$2" || exit 1
 		;;
 	esac
 	[ "$1" = SHA256.sig ] || verify_file "$@"
@@ -437,7 +523,7 @@ __EOF
 	esac
 
 	if [ "$bootfile" != "$bootprog" ]; then
-		cp "$tftproot/$bootprog" "$tftproot/$bootfile" || exit 1
+		ln -s "$bootprog" "$tftproot/$bootfile" || exit 1
 	fi
 }
 
@@ -446,14 +532,11 @@ setup_http() {
 	httproot=$tmpdir
 	[ "$dry_run" = yes ] && return
 
-	cp "$workdir/dummy-httpd.sh" "$workdir/install.conf" \
-	    "$workdir/disklabel" "$httproot/" || exit 1
-
-	if [ -d "$workdir/site" ]; then
+	if [ -d "$project_dir/site" ]; then
 		[ -n "$install_version" ] ||
 		    find_install_file base .tgz 'base[0-9][0-9]*\.tgz'
 		bsdtar -czf "$httproot/site.tgz" \
-		    -C "$workdir/site" "@$workdir/site.perms" || exit 1
+		    -C "$project_dir/site" "@$project_dir/site.perms" || exit 1
 		[ -f "$httproot/SHA256.sig" ] ||
 		    fetch_file SHA256.sig "$httproot/SHA256.sig"
 		if grep -q '^SHA256 (BUILDINFO) = ' "$httproot/SHA256.sig"; then
@@ -461,11 +544,12 @@ setup_http() {
 		fi
 		printf '0 INSTALL.%s\n0 SHA256.sig\n0 site%s.tgz\n' "$install_arch" \
 		    "$install_version" >"$httproot/index.txt" || exit 1
-		cat >>"$httproot/install.conf" <<__EOF || exit 1
-Checksum test for site$install_version.tgz failed. Continue anyway = yes
-Unverified sets: site$install_version.tgz. Continue without verification = yes
-__EOF
+		http_site_version=$install_version
 	fi
+}
+
+quote_arg() {
+	printf "'%s'" "$(printf '%s' "$1" | sed "s/'/'\\\\''/g")"
 }
 
 set_netdev() {
@@ -480,15 +564,9 @@ set_netdev() {
 	fi
 
 	if [ -n "$httproot" ]; then
-		net_user="$net_user,guestfwd=tcp:$http_addr:80-cmd:$httproot/dummy-httpd.sh"
-	fi
-
-	if [ -n "$net_legacy_model" ]; then
-		net_args="-net nic,model=$net_legacy_model -net $net_user"
-	else
-		netdev="user,id=net0,${net_user#user,}"
-		net_args="-netdev $netdev"
-		net_args="$net_args -device $net_device,netdev=net0"
+		http_command="$(quote_arg "$httpd") $(quote_arg "$project_dir") $(quote_arg "$httproot") $(quote_arg "$http_site_version")"
+		http_command=$(printf '%s' "$http_command" | sed 's/,/,,/g')
+		net_user="$net_user,guestfwd=tcp:$http_addr:80-cmd:$http_command"
 	fi
 }
 
@@ -568,8 +646,9 @@ qemu_installer_disk_device_args=
 qemu_miniroot_disk_args=if=ide,index=1
 qemu_cdrom_disk_args=
 qemu_miniroot_device_args=
+qemu_bios=
 qemu_pflash=
-qemu_pflash_args=
+qemu_pflash_readonly=
 qemu_media=
 qemu_media_disk_args=
 qemu_media_device_args=
@@ -579,6 +658,8 @@ tmpdir=
 tmpdisk=
 tftproot=
 httproot=
+httpd=
+http_site_version=
 bootfile=
 miniroot=
 cdrom=
@@ -587,10 +668,11 @@ miniroot_boot_file=
 installurl=
 install_version=
 install_arch=$arch
-workdir=$(dirname "$(realpath "$0")") || exit 1
+script_dir=$(dirname "$(realpath "$0")") || exit 1
 if [ -n "$run_dir" ]; then
 	cd "$run_dir" || exit 1
 fi
+run_dir=$(pwd -P) || exit 1
 tmp_parent=${TMPDIR:-/tmp}
 vm_hostname=${vm_hostname:-obsd-$arch}
 case "$vm_hostname" in
@@ -611,15 +693,36 @@ esac
 set_arch
 set_qemu_defaults "$@"
 
+if [ "$mode" = shrink ]; then
+	require_disk
+	shrink_disk "$@"
+	exit
+fi
+
+set_project_dir
 case "$mode" in
 run)
 	require_disk
 	;;
-shrink)
-	require_disk
-	shrink_disk "$@"
-	exit
+manual)
+	require_project
+	[ -f "$project_dir/install.conf" ] || require_disk
 	;;
+autoinstall)
+	require_tftp
+	require_project
+	require_file "$project_dir/install.conf"
+	;;
+autoupgrade)
+	require_tftp
+	require_project
+	require_file "$project_dir/install.conf"
+	require_disk
+	;;
+esac
+set_assets
+
+case "$mode" in
 manual)
 	ensure_disk
 	if [ "$installer" = miniroot ]; then
@@ -632,14 +735,11 @@ manual)
 	setup_http
 	;;
 autoinstall)
-	require_tftp
 	ensure_disk
 	setup_tftp
 	setup_http
 	;;
 autoupgrade)
-	require_tftp
-	require_disk
 	setup_tftp
 	setup_http
 	;;
@@ -672,15 +772,25 @@ else
 	qemu_target_option=-hda
 	qemu_target_args=$disk
 fi
+if [ -n "$net_legacy_model" ]; then
+	set -- -net "nic,model=$net_legacy_model" -net "$net_user" "$@"
+else
+	set -- -netdev "user,id=net0,${net_user#user,}" \
+	    -device "$net_device,netdev=net0" "$@"
+fi
+if [ -n "$qemu_pflash" ]; then
+	set -- -drive "file=$qemu_pflash,format=raw,if=pflash,readonly=$qemu_pflash_readonly" "$@"
+fi
+if [ -n "$qemu_bios" ]; then
+	set -- -bios "$qemu_bios" "$@"
+fi
 if [ -n "$qemu_boot_command" ]; then
 	set -- -prom-env "boot-command=$qemu_boot_command" "$@"
 fi
 
 run_command "$qemu" $qemu_args $qemu_default_args \
     $qemu_boot_args $qemu_shutdown_args \
-    $qemu_pflash_args \
     $qemu_media_args \
     "$qemu_target_option" "$qemu_target_args" \
     $qemu_disk_device_args \
-    $net_args \
     "$@"

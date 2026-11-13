@@ -121,6 +121,12 @@ when QEMU exits.
 
 Architecture limits
 
+On arm64, armv7, and riscv64, -i and -u may boot an existing system;
+select network boot manually in U-Boot.
+
+On powerpc64, -m may require selecting "OpenBSD install" in Petitboot.
+Swapping SATA ports does not reliably select the installer.
+
 On armv7, the MSDOS boot partition appears as i: in the disklabel;
 autopartitioning has room for at most 14 OpenBSD partitions.
 

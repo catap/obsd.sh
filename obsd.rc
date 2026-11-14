@@ -1,0 +1,34 @@
+#!/bin/ksh
+
+daemon="/usr/local/bin/obsd.sh"
+daemon_execdir="/var/vm"
+daemon_flags="unspecified"
+daemon_user="_vmd"
+
+. /etc/rc.d/rc.subr
+
+rc_reload=NO
+rc_usercheck=NO
+pexp="$(printf '%s\n' \
+    "tmux: server (${daemon_execdir}/${_name}.sock)" |
+    sed 's/[][\\.^$*+?(){}|]/\\&/g')"
+
+rc_check() {
+	rc_exec "/usr/bin/tmux -N \
+	    -S ${daemon_execdir}/${_name}.sock has-session"
+}
+
+rc_start() {
+	local tmux_setup=
+
+	if [ -n "${_RC_DEBUG}" ]; then
+		tmux_setup="set-option -gw remain-on-exit failed \\;"
+	fi
+
+	rc_exec "/usr/bin/tmux -f /dev/null \
+	    -S ${daemon_execdir}/${_name}.sock \
+	    ${tmux_setup} new-session -d \
+	    ${daemon} -d ${daemon_execdir} ${daemon_flags}"
+}
+
+rc_cmd "$1"

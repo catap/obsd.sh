@@ -119,6 +119,58 @@ The HTTP helper and OpenBIOS files come from beside obsd.sh, otherwise
 when QEMU exits.
 
 
+Running as a service
+
+Install obsd.rc as /etc/rc.d/obsd and obsd.login as
+/etc/login.conf.d/obsd. The service defaults to user _vmd and directory
+/var/vm; that directory must exist and be writable by _vmd.
+
+The example login class uses datasize=20G: 16G for the default guest
+RAM, 1G for the shared TCG translation cache, and 3G for other QEMU
+allocations. The 3G allowance is an estimate and may need adjustment
+for the workload.
+
+Create an Octeon service instance:
+
+    doas ln -s /etc/rc.d/obsd /etc/rc.d/obsd_octeon
+    doas cp /etc/login.conf.d/obsd /etc/login.conf.d/obsd_octeon
+    doas sed -i 's/^obsd:/obsd_octeon:/' /etc/login.conf.d/obsd_octeon
+    doas rcctl enable obsd_octeon
+    doas rcctl set obsd_octeon flags "-p 22222 octeon -m 12G"
+
+The login class entry must match the service name. These flags forward
+host TCP port 22222 to the guest's SSH port and give the guest 12G of
+RAM. The tmux socket uses the full service name, so this instance uses
+/var/vm/obsd_octeon.sock.
+
+Install a snapshot VM using the service's user and login class:
+
+    doas su -fl -c obsd_octeon -s /bin/sh _vmd -c \
+        '/usr/local/bin/obsd.sh -d /var/vm -s -i octeon -m 12G'
+
+After installation, start the service:
+
+    doas rcctl start obsd_octeon
+
+Connect to its console:
+
+    doas -u _vmd tmux -N -S /var/vm/obsd_octeon.sock attach-session
+
+Detach with Ctrl-b d to leave the VM running.
+
+To investigate a failed start, use rcctl -d. The debug start retains
+the tmux pane if the VM command exits with an error. Attach to the
+console as above, or print its output and exit status:
+
+    doas rcctl -d start obsd_octeon
+    doas -u _vmd tmux -N -S /var/vm/obsd_octeon.sock capture-pane -p -S -
+
+A retained pane still counts as a running session. After inspection,
+stop the service before retrying:
+
+    doas rcctl stop obsd_octeon
+
+
 Architecture limits
 
 On arm64, armv7, and riscv64, -i and -u may boot an existing system;

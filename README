@@ -6,41 +6,9 @@ a serial console and qcow2 disk images.
 For design rationale and architecture specific details, see:
 https://kirill.korins.ky/articles/openbsd-under-qemu/
 
-Requirements
+You can install it at OpenBSD after 8.0 as:
 
-Install the required packages:
-
-    pkg_add qemu libarchive u-boot-aarch64 u-boot-arm u-boot-octeon \
-        u-boot-riscv64 opensbi talos-ii-pnor-bootkernel
-
-The following patches are required for QEMU 11.1.1 and libslirp 4.9.4.
-They are included in the OpenBSD -current QEMU port; OpenBSD 8.0
-includes all except the hppa patch:
-
-    sparc64:
-      https://github.com/catap/openbios/commit/9151118aea489f9fffa40c60ee3b1d93383fb96b.patch
-      https://github.com/catap/openbios/commit/8d5ed09f0420389a27394b7c1b7d40ae7aab9d32.patch
-      https://github.com/catap/openbios/commit/cd90de7bda9006e2382d10302555a4cf825ea425.patch
-      https://github.com/catap/openbios/commit/daa1b2595b2347e8031431dae1aeded976fd7057.patch
-
-    powerpc64:
-      https://patchew.org/QEMU/20260719145559.94342-1-kirill@korins.ky/
-
-    QEMU/octeon:
-      https://patchew.org/QEMU/20261113214926.98536-1-kirill@korins.ky/
-      https://patchew.org/QEMU/20261111171150.61871-1-kirill@korins.ky/
-
-    OpenBSD/macppc:
-      https://patchew.org/QEMU/20261001230058.11465-1-kirill@korins.ky/
-      https://github.com/catap/openbios/commit/e61a69213260e7eae8bef4a8ef0ce5c0b0f6be8a.patch
-      https://github.com/catap/openbios/commit/d14f3c85b567048f0c756b7b030427245416e23d.patch
-      https://github.com/catap/openbios/commit/c05a3d608e452276045e7ec8804a235f8e710e5f.patch
-      https://github.com/catap/openbios/commit/06bd9d43e0755027cad82ba165cb3d2fdd3137a9.patch
-      https://github.com/catap/openbios/commit/d8d459af79ae177dd167be3909ef6f0fab91a563.patch
-      https://github.com/catap/openbios/commit/ba2f9b93d4a157f6d29df606ec4abf6f605e7187.patch
-
-    QEMU/hppa:
-      https://patchew.org/QEMU/20261024161240.66707-1-kirill@korins.ky/
+    pkg_add obsd.sh
 
 
 Usage
@@ -136,7 +104,7 @@ Create an Octeon service instance:
     doas cp /etc/login.conf.d/obsd /etc/login.conf.d/obsd_octeon
     doas sed -i 's/^obsd:/obsd_octeon:/' /etc/login.conf.d/obsd_octeon
     doas rcctl enable obsd_octeon
-    doas rcctl set obsd_octeon flags "-p 22222 octeon -m 12G"
+    doas rcctl set obsd_octeon flags -p 22222 octeon -m 12G
 
 The login class entry must match the service name. These flags forward
 host TCP port 22222 to the guest's SSH port and give the guest 12G of
@@ -145,8 +113,8 @@ RAM. The tmux socket uses the full service name, so this instance uses
 
 Install a snapshot VM using the service's user and login class:
 
-    doas su -fl -c obsd_octeon -s /bin/sh _vmd -c \
-        '/usr/local/bin/obsd.sh -d /var/vm -s -i octeon -m 12G'
+    doas su -c obsd_octeon -s /bin/sh _vmd /usr/local/bin/obsd.sh \
+        -d /var/vm -s -i octeon -m 12G
 
 After installation, start the service:
 
@@ -211,3 +179,42 @@ unused space, first boot the guest with /bsd -s and zero free space:
         done
     sync
     halt
+
+
+Requirements
+
+Install the required packages:
+
+    pkg_add qemu libarchive u-boot-aarch64 u-boot-arm u-boot-octeon \
+        u-boot-riscv64 opensbi talos-ii-pnor-bootkernel
+
+The following patches are required for QEMU 11.1.3 and libslirp 4.9.4.
+They are included in the OpenBSD -current QEMU port; OpenBSD 8.0
+includes all except the hppa patch:
+
+    sparc64:
+      https://github.com/catap/openbios/commit/9151118aea489f9fffa40c60ee3b1d93383fb96b.patch
+      https://github.com/catap/openbios/commit/8d5ed09f0420389a27394b7c1b7d40ae7aab9d32.patch
+      https://github.com/catap/openbios/commit/cd90de7bda9006e2382d10302555a4cf825ea425.patch
+      https://github.com/catap/openbios/commit/daa1b2595b2347e8031431dae1aeded976fd7057.patch
+
+    powerpc64:
+      https://patchew.org/QEMU/20260719145559.94342-1-kirill@korins.ky/
+
+    QEMU/octeon:
+      https://patchew.org/QEMU/20261113214926.98536-1-kirill@korins.ky/
+      https://patchew.org/QEMU/20261111171150.61871-1-kirill@korins.ky/
+
+    OpenBSD/macppc:
+      https://patchew.org/QEMU/20261001230058.11465-1-kirill@korins.ky/
+      https://github.com/catap/openbios/commit/e61a69213260e7eae8bef4a8ef0ce5c0b0f6be8a.patch
+      https://github.com/catap/openbios/commit/d14f3c85b567048f0c756b7b030427245416e23d.patch
+      https://github.com/catap/openbios/commit/c05a3d608e452276045e7ec8804a235f8e710e5f.patch
+      https://github.com/catap/openbios/commit/06bd9d43e0755027cad82ba165cb3d2fdd3137a9.patch
+      https://github.com/catap/openbios/commit/d8d459af79ae177dd167be3909ef6f0fab91a563.patch
+      https://github.com/catap/openbios/commit/ba2f9b93d4a157f6d29df606ec4abf6f605e7187.patch
+
+    QEMU/hppa:
+      https://patchew.org/QEMU/20261024161240.66707-1-kirill@korins.ky/
+
+

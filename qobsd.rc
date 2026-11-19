@@ -1,6 +1,6 @@
 #!/bin/ksh
 
-daemon="/usr/local/bin/obsd.sh"
+daemon="/usr/local/bin/qobsd"
 daemon_execdir="/var/vm"
 daemon_flags="unspecified"
 daemon_user="_vmd"

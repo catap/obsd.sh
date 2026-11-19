@@ -35,8 +35,8 @@ host_addr=10.0.2.1
 http_addr=10.0.2.1
 
 default_installurl=https://cdn.openbsd.org/pub/OpenBSD
-examples_dir=/usr/local/share/examples/obsd.sh
-assets_dir=/usr/local/share/obsd.sh
+examples_dir=/usr/local/share/examples/qobsd
+assets_dir=/usr/local/share/qobsd
 
 usage() {
 	echo "usage: $0 [-n] [-d directory] [-f image] [-H hostname] [-p port] <arch> [qemu args ...]" >&2
@@ -208,7 +208,7 @@ set_arch() {
 	macppc)
 		qemu=qemu-system-ppc
 		qemu_args="-machine mac99,via=cuda,graphics=off,usb=off -global cuda.x-sr-delay-ns=0 -cpu g4 -nographic -prom-env input-device=ttya -prom-env output-device=ttya"
-		qemu_bios=openbios-ppc-obsd-ba2f9b9.elf
+		qemu_bios=openbios-ppc-qobsd-ba2f9b9.elf
 		qemu_memory=$macppc_memory
 		qemu_cpus=$macppc_cpus
 		net_device=e1000
@@ -231,9 +231,9 @@ set_arch() {
 		qemu_disk_args=if=none,id=hd0
 		qemu_disk_device_args="-device usb-storage,drive=hd0"
 		if [ "$mode" = run ]; then
-			qemu_pflash=u-boot-octeon3-obsd-boot.pflash
+			qemu_pflash=u-boot-octeon3-qobsd-boot.pflash
 		else
-			qemu_pflash=u-boot-octeon3-obsd-install.pflash
+			qemu_pflash=u-boot-octeon3-qobsd-install.pflash
 		fi
 		;;
 	powerpc64)
@@ -261,7 +261,7 @@ set_arch() {
 	sparc64)
 		qemu=qemu-system-sparc64
 		qemu_args="-machine sun4u -nographic -prom-env boot-device=disk"
-		qemu_bios=openbios-sparc64-obsd-daa1b25.elf
+		qemu_bios=openbios-sparc64-qobsd-daa1b25.elf
 		qemu_memory=$memory
 		qemu_cpus=$sparc64_cpu
 		net_legacy_model=sunhme
@@ -674,7 +674,7 @@ if [ -n "$run_dir" ]; then
 fi
 run_dir=$(pwd -P) || exit 1
 tmp_parent=${TMPDIR:-/tmp}
-vm_hostname=${vm_hostname:-obsd-$arch}
+vm_hostname=${vm_hostname:-qobsd-$arch}
 case "$vm_hostname" in
 *.*)	vm_domain=${vm_hostname#*.};;
 *)	vm_domain=$(hostname)

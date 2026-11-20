@@ -1,6 +1,6 @@
 #!/bin/ksh
 
-daemon="/usr/local/bin/qobsd"
+daemon='@LOCALBASE@/bin/qobsd'
 daemon_execdir="/var/vm"
 daemon_flags="unspecified"
 daemon_user="_vmd"
@@ -28,7 +28,7 @@ rc_start() {
 	rc_exec "/usr/bin/tmux -f /dev/null \
 	    -S ${daemon_execdir}/${_name}.sock \
 	    ${tmux_setup} new-session -d \
-	    ${daemon} -d ${daemon_execdir} ${daemon_flags}"
+	    \"${daemon}\" -d ${daemon_execdir} ${daemon_flags}"
 }
 
 rc_cmd "$1"

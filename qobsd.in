@@ -35,8 +35,9 @@ host_addr=10.0.2.1
 http_addr=10.0.2.1
 
 default_installurl=https://cdn.openbsd.org/pub/OpenBSD
-examples_dir=/usr/local/share/examples/qobsd
-assets_dir=/usr/local/share/qobsd
+installurl_file='@SYSCONFDIR@/installurl'
+examples_dir='@LOCALBASE@/share/examples/qobsd'
+assets_dir='@LOCALBASE@/share/qobsd'
 
 usage() {
 	echo "usage: $0 [-n] [-d directory] [-f image] [-H hostname] [-p port] <arch> [qemu args ...]" >&2
@@ -166,7 +167,7 @@ set_arch() {
 		;;
 	arm64)
 		qemu=qemu-system-aarch64
-		qemu_args="-machine virt -cpu cortex-a57 -nographic -bios /usr/local/share/u-boot/qemu_arm64/u-boot.bin"
+		qemu_args="-machine virt -cpu cortex-a57 -nographic -bios @LOCALBASE@/share/u-boot/qemu_arm64/u-boot.bin"
 		qemu_memory=$memory
 		qemu_cpus=$cpus
 		net_device=virtio-net-device
@@ -177,7 +178,7 @@ set_arch() {
 		;;
 	armv7)
 		qemu=qemu-system-arm
-		qemu_args="-machine virt,virtualization=on -cpu cortex-a15 -nographic -bios /usr/local/share/u-boot/qemu_arm/u-boot.bin"
+		qemu_args="-machine virt,virtualization=on -cpu cortex-a15 -nographic -bios @LOCALBASE@/share/u-boot/qemu_arm/u-boot.bin"
 		qemu_memory=$armv7_memory
 		qemu_cpus=$armv7_cpu
 		net_device=virtio-net-device
@@ -223,7 +224,7 @@ set_arch() {
 	octeon)
 		qemu=qemu-system-mips64
 		install_arch=octeon
-		qemu_args="-machine octeon3 -accel tcg,thread=multi -nographic -bios /usr/local/share/u-boot/octeon_ebb7304/u-boot.bin"
+		qemu_args="-machine octeon3 -accel tcg,thread=multi -nographic -bios @LOCALBASE@/share/u-boot/octeon_ebb7304/u-boot.bin"
 		qemu_memory=$memory
 		qemu_cpus=$octeon_cpus
 		net_device=e1000
@@ -238,7 +239,7 @@ set_arch() {
 		;;
 	powerpc64)
 		qemu=qemu-system-ppc64
-		qemu_args="-machine powernv9 -cpu power9 -nographic -bios /usr/local/share/qemu/skiboot.lid -kernel /usr/local/share/talos-ii-pnor/pnor.BOOTKERNEL -device ich9-ahci,id=ahci0,bus=pcie.0"
+		qemu_args="-machine powernv9 -cpu power9 -nographic -bios @LOCALBASE@/share/qemu/skiboot.lid -kernel @LOCALBASE@/share/talos-ii-pnor/pnor.BOOTKERNEL -device ich9-ahci,id=ahci0,bus=pcie.0"
 		qemu_memory=$memory
 		qemu_cpus=$cpus
 		net_device=e1000e,bus=pcie.1
@@ -251,7 +252,7 @@ set_arch() {
 		;;
 	riscv64)
 		qemu=qemu-system-riscv64
-		qemu_args="-machine virt -nographic -bios /usr/local/share/opensbi/generic/fw_jump.bin -kernel /usr/local/share/u-boot/qemu-riscv64_smode/u-boot.bin"
+		qemu_args="-machine virt -nographic -bios @LOCALBASE@/share/opensbi/generic/fw_jump.bin -kernel @LOCALBASE@/share/u-boot/qemu-riscv64_smode/u-boot.bin"
 		qemu_memory=$memory
 		qemu_cpus=$cpus
 		net_device=virtio-net-device
@@ -311,8 +312,8 @@ shrink_disk() {
 }
 
 set_installurl() {
-	if [ -z "$installurl" ] && [ -f /etc/installurl ]; then
-		installurl=$(sed 's/#.*//;/^[	 ]*$/d;s/^[	 ]*//;s/[	 ]*$//;q' /etc/installurl)
+	if [ -z "$installurl" ] && [ -f "$installurl_file" ]; then
+		installurl=$(sed 's/#.*//;/^[	 ]*$/d;s/^[	 ]*//;s/[	 ]*$//;q' "$installurl_file")
 	fi
 
 	[ -n "$installurl" ] || installurl=$default_installurl

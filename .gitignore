@@ -1,1 +1,4 @@
 *.qcow2
+/qobsd
+/qobsd.1
+/qobsd.rc

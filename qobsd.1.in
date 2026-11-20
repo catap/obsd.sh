@@ -91,7 +91,7 @@ is a local directory or an FTP, HTTP, or HTTPS mirror containing
 or
 .Pa snapshots/ Ns Ar arch .
 The default is the first mirror in
-.Pa /etc/installurl ,
+.Pa @SYSCONFDIR@/installurl ,
 falling back to
 .Lk https://cdn.openbsd.org/pub/OpenBSD .
 Select the distribution set source in the guest.
@@ -108,7 +108,7 @@ Temporary file directory, default
 .Sh FILES
 Supply installation inputs together in the working directory.
 If none are present, the defaults come from
-.Pa /usr/local/share/examples/qobsd .
+.Pa @LOCALBASE@/share/examples/qobsd .
 .Pp
 .Bl -tag -width site.perms -compact
 .It Pa install.conf

@@ -9,6 +9,9 @@ package is available.
 
     pkg_add qobsd
 
+Run make before using ./qobsd. Use make install to install locally or
+make DESTDIR=/tmp/stage install to stage a package.
+
 
 Usage
 
@@ -88,6 +91,7 @@ when QEMU exits.
 
 Running as a service
 
+For a source install, use the files in /usr/local/share/examples/qobsd.
 Install qobsd.rc as /etc/rc.d/qobsd and qobsd.login as
 /etc/login.conf.d/qobsd. The service defaults to user _vmd and directory
 /var/vm; that directory must exist and be writable by _vmd.

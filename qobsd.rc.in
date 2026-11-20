@@ -2,8 +2,11 @@
 
 daemon='@LOCALBASE@/bin/qobsd'
 daemon_execdir="/var/vm"
-daemon_flags="unspecified"
 daemon_user="_vmd"
+
+instance=${0##*/}
+instance=${instance#qobsd_}
+daemon_flags="-f ${instance}.qcow2 ${instance%%_*}"
 
 . /etc/rc.d/rc.subr
 

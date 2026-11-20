@@ -101,18 +101,26 @@ RAM, 1G for the shared TCG translation cache, and 3G for other QEMU
 allocations. The 3G allowance is an estimate and may need adjustment
 for the workload.
 
+Service links named qobsd_<arch> or qobsd_<arch>_<instance> determine
+the guest architecture and disk. For Octeon, qobsd_octeon uses
+octeon.qcow2 and qobsd_octeon_2 uses octeon_2.qcow2. Octeon guests with
+writable pflash require separate working directories.
+
 Create an Octeon service instance:
 
     doas ln -s /etc/rc.d/qobsd /etc/rc.d/qobsd_octeon
     doas cp /etc/login.conf.d/qobsd /etc/login.conf.d/qobsd_octeon
     doas sed -i 's/^qobsd:/qobsd_octeon:/' /etc/login.conf.d/qobsd_octeon
     doas rcctl enable qobsd_octeon
-    doas rcctl set qobsd_octeon flags -p 22222 octeon -m 12G
 
-The login class entry must match the service name. These flags forward
-host TCP port 22222 to the guest's SSH port and give the guest 12G of
-RAM. The tmux socket uses the full service name, so this instance uses
-/var/vm/qobsd_octeon.sock.
+The login class entry must match the service name. The tmux socket uses
+the full service name, so this instance uses /var/vm/qobsd_octeon.sock.
+
+A flags override replaces the full argument list. Specify -f for a
+service with an instance suffix. These flags forward host TCP port
+22222 to the guest's SSH port and give the guest 12G of RAM.
+
+    doas rcctl set qobsd_octeon flags -p 22222 octeon -m 12G
 
 Install a snapshot VM using the service's user and login class:
 

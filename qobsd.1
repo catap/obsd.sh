@@ -1,0 +1,202 @@
+.Dd November 20, 2026
+.Dt QOBSD 1
+.Os
+.Sh NAME
+.Nm qobsd
+.Nd install, upgrade, and run OpenBSD guests under QEMU
+.Sh SYNOPSIS
+.Nm
+.Op Fl n
+.Op Fl d Ar directory
+.Op Fl f Ar image
+.Op Fl H Ar hostname
+.Op Fl p Ar port
+.Ar arch
+.Op Ar qemu-arg ...
+.Nm
+.Op Fl nk
+.Op Fl d Ar directory
+.Op Fl f Ar image
+.Op Fl H Ar hostname
+.Pq Fl m | Fl i | Fl u
+.Pq Fl s | Fl R Ar version
+.Ar arch
+.Op Ar installurl
+.Op Ar qemu-arg ...
+.Nm
+.Op Fl n
+.Op Fl d Ar directory
+.Op Fl f Ar image
+.Fl z
+.Ar arch
+.Op Ar convert-arg ...
+.Sh DESCRIPTION
+With no mode flag,
+.Nm
+boots an existing qcow2 disk with a serial console.
+VM arguments after
+.Ar arch
+and any
+.Ar installurl
+pass to
+.Xr qemu 1 .
+.Pp
+Supported architectures are
+.Cm amd64 , arm64 , armv7 , hppa , i386 , macppc , octeon ,
+.Cm powerpc64 , riscv64 ,
+and
+.Cm sparc64 .
+.Pp
+.Bl -tag -width Ds -compact
+.It Fl d Ar directory
+Set the working directory for relative paths.
+.It Fl f Ar image
+Set the disk image, defaulting to
+.Ar arch Ns Pa .qcow2 .
+.It Fl H Ar hostname
+Set the guest hostname, defaulting to
+.Li qobsd- Ns Ar arch Ns Li . Ns Ar host-hostname .
+Short names use the host's hostname as their domain.
+.It Fl i
+Install unattended, creating the disk if needed.
+.It Fl k
+Skip host verification of installer files.
+.It Fl m
+Boot the interactive installer.
+.It Fl n
+Dry run, printing QEMU or conversion commands.
+Snapshot media lookup may contact the mirror.
+.It Fl p Ar port
+Forward a host TCP port on all IPv4 interfaces to guest SSH.
+.It Fl R Ar version
+Use an OpenBSD release.
+.It Fl s
+Use an OpenBSD snapshot.
+.It Fl u
+Upgrade an existing disk unattended.
+.It Fl z
+Compact a stopped guest's disk, replacing it on success.
+Pass
+.Cm qemu-img convert
+options after
+.Ar arch ,
+such as
+.Fl c
+for compression.
+.El
+.Ss Installation source
+.Ar installurl
+is a local directory or an FTP, HTTP, or HTTPS mirror containing
+.Ar version Ns Pa / Ns Ar arch
+or
+.Pa snapshots/ Ns Ar arch .
+The default is the first mirror in
+.Pa /etc/installurl ,
+falling back to
+.Lk https://cdn.openbsd.org/pub/OpenBSD .
+Select the distribution set source in the guest.
+Installation and upgrade exit on guest reboot.
+.Sh ENVIRONMENT
+.Bl -tag -width DISK_SIZE -compact
+.It Ev DISK_SIZE
+New disk size, default
+.Li 128G .
+.It Ev TMPDIR
+Temporary file directory, default
+.Pa /tmp .
+.El
+.Sh FILES
+Supply installation inputs together in the working directory.
+If none are present, the defaults come from
+.Pa /usr/local/share/examples/qobsd .
+.Pp
+.Bl -tag -width site.perms -compact
+.It Pa install.conf
+Answer file, required by
+.Fl i
+and
+.Fl u ,
+and to create a disk with
+.Fl m .
+.It Pa disklabel
+Autopartitioning template, if referenced by
+.Pa install.conf .
+.It Pa site/ , site.perms
+Optional site tree and
+.Xr mtree 5
+manifest, required together.
+.Li contents=
+paths are relative to
+.Pa site/ .
+.It Pa u-boot-octeon3-qobsd-boot.pflash
+Octeon boot flash.
+A local copy overrides the example.
+.It Pa u-boot-octeon3-qobsd-install.pflash
+Octeon installation flash.
+Local flash images are writable.
+.El
+.Sh EXIT STATUS
+VM runs return QEMU's exit status.
+Other invocations return 0 on success, 1 on failure, or 2 for invalid
+usage.
+.Sh EXAMPLES
+With
+.Pa install.conf
+in the working directory, install an amd64 snapshot into a new image.
+When installation finishes, boot the same image.
+.Bd -literal -offset indent
+qobsd -f snapshot.qcow2 -i -s amd64
+qobsd -f snapshot.qcow2 amd64
+.Ed
+.Pp
+With the snapshot guest stopped, upgrade its disk to the current
+snapshot.
+.Dl qobsd -f snapshot.qcow2 -u -s amd64
+.Pp
+Boot an existing amd64 guest with 8G of RAM and forward host TCP port
+2222 to guest SSH.
+.Dl qobsd -f dev.qcow2 -p 2222 amd64 -m 8G
+.Pp
+Boot the OpenBSD 8.0 installer with an existing
+.Pa macppc.qcow2
+disk, using a local mirror with media under
+.Pa /var/mirror/OpenBSD/8.0/macppc .
+.Bd -literal -offset indent
+qobsd -m -R 8.0 macppc /var/mirror/OpenBSD
+.Ed
+.Pp
+After shutting down the snapshot guest, compact its disk with
+compression.
+.Dl qobsd -f snapshot.qcow2 -z amd64 -c
+.Sh SEE ALSO
+.Xr qemu 1 ,
+.Xr qemu-img 1 ,
+.Xr installurl 5 ,
+.Xr mtree 5 ,
+.Xr autoinstall 8 ,
+.Xr disklabel 8
+.Sh CAVEATS
+.Fl i
+and
+.Fl u
+are unavailable on
+.Cm hppa , macppc , powerpc64 ,
+and
+.Cm sparc64 .
+If U-Boot starts the disk on
+.Cm arm64 , armv7 ,
+or
+.Cm riscv64 ,
+select network boot manually.
+On
+.Cm powerpc64 ,
+select
+.Dq OpenBSD install
+in Petitboot if needed.
+.Pp
+.Cm macppc
+supports at most 2G of RAM and one CPU.
+On
+.Cm octeon ,
+match the CPU count to U-Boot's
+.Cm numcores .

@@ -1,5 +1,6 @@
 LOCALBASE ?= /usr/local
 SYSCONFDIR ?= /etc
+RCDIR ?= $(SYSCONFDIR)/rc.d
 
 SUBST = sed \
 	-e 's|@LOCALBASE@|$(LOCALBASE)|g' \
@@ -21,14 +22,14 @@ install: all
 	install -d "$(DESTDIR)$(LOCALBASE)/bin" \
 	    "$(DESTDIR)$(LOCALBASE)/man/man1" \
 	    "$(DESTDIR)$(LOCALBASE)/share/qobsd" \
-	    "$(DESTDIR)$(LOCALBASE)/share/examples/qobsd/site/etc"
+	    "$(DESTDIR)$(LOCALBASE)/share/examples/qobsd/site/etc" \
+	    "$(DESTDIR)$(RCDIR)"
 	install -m 755 qobsd "$(DESTDIR)$(LOCALBASE)/bin/qobsd"
 	install -m 644 qobsd.1 "$(DESTDIR)$(LOCALBASE)/man/man1/qobsd.1"
 	install -m 755 dummy-httpd.sh "$(DESTDIR)$(LOCALBASE)/share/qobsd/"
 	install -m 644 openbios-ppc-qobsd-ba2f9b9.elf \
 	    openbios-sparc64-qobsd-daa1b25.elf "$(DESTDIR)$(LOCALBASE)/share/qobsd/"
-	install -m 755 qobsd.rc \
-	    "$(DESTDIR)$(LOCALBASE)/share/examples/qobsd/qobsd.rc"
+	install -m 755 qobsd.rc "$(DESTDIR)$(RCDIR)/qobsd"
 	install -m 644 qobsd.login disklabel site.perms \
 	    u-boot-octeon3-qobsd-boot.pflash u-boot-octeon3-qobsd-install.pflash \
 	    "$(DESTDIR)$(LOCALBASE)/share/examples/qobsd/"

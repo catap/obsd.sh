@@ -31,7 +31,7 @@ rc_start() {
 	rc_exec "/usr/bin/tmux -f /dev/null \
 	    -S ${daemon_execdir}/${_name}.sock \
 	    ${tmux_setup} new-session -d \
-	    \"${daemon}\" -d ${daemon_execdir} ${daemon_flags}"
+	    \"${daemon}\" ${daemon_flags}"
 }
 
 rc_cmd "$1"
